@@ -1,8 +1,3 @@
-/* ==========================================================================
-   RIFTFALL — CONTINUANCE ARCHIVE
-   Application logic: world map, click-to-zoom subdivision drill-down,
-   faction dossiers, exclusion zones, incident timeline.
-   ========================================================================== */
 
 (function(){
   "use strict";
@@ -10,14 +5,14 @@
   const DATA = window.RIFTFALL_DATA;
   const COUNTRY_MAP = window.RIFTFALL_COUNTRY_MAP;
 
-  /* ---------------------------------------------------------------------
-     Faction color assignment — muted, distinguishable, dark-theme-safe.
-     --------------------------------------------------------------------- */
+    // Restrained, low-saturation palette. Amber and red are deliberately
+  // excluded here — those two are reserved elsewhere in the UI for
+  // "approximate" and "classified" meaning, so reusing them per-faction
+  // would blur signal with noise. A short cycling set reads as one
+  // coherent filing system instead of a wall of distinct hues.
   const FACTION_COLORS = [
-    "#5fd4c4","#e0a53f","#c1453f","#7fa8d9","#c98fd6","#9bc75a",
-    "#d97a9c","#5fa9d4","#e0c23f","#8f6fd6","#5fd48a","#d45f7a",
-    "#a3a3a3","#d48f5f","#5f8ed4","#c4d45f","#d45fbf","#6fd6b0",
-    "#d6a06f","#7ed6d6","#b0d65f","#d65f8e","#8ed65f","#5f79d6","#d6785f"
+    "#5fd4c4","#7c93b0","#9b8fc9","#7fae8a",
+    "#a98fae","#7ea3ae","#a99b7c","#6f8fa3"
   ];
   DATA.factions.forEach((f,i)=>{ f.color = FACTION_COLORS[i % FACTION_COLORS.length]; });
   const factionByName = {};
@@ -27,10 +22,7 @@
     confirmed: "CONFIRMED", approx: "APPROXIMATE", classified: "CLASSIFIED", orbital: "NON-TERRESTRIAL"
   };
 
-  /* =======================================================================
-     BOOT SEQUENCE
-     ======================================================================= */
-  const bootLines = [
+    const bootLines = [
     "CONTINUANCE NETWORK // TERMINAL AUTH — REQUESTING UPLINK",
     "VERIFYING ARCHIVE INTEGRITY ................. OK",
     "DECRYPTING FACTION HOLDINGS REGISTER ......... OK",
@@ -66,10 +58,7 @@
     }, { once:false });
   }
 
-  /* =======================================================================
-     MAP SETUP
-     ======================================================================= */
-  const map = L.map('map', {
+    const map = L.map('map', {
     center: [20, 10],
     zoom: 2,
     minZoom: 2,
@@ -80,11 +69,11 @@
   });
   map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) — Rendered with Leaflet');
 
-  let worldLayer = null;          // country choropleth (always-on global view)
+  let worldLayer = null;
   let factionLayerGroup = L.layerGroup().addTo(map);
   let zoneLayerGroup = L.layerGroup().addTo(map);
   let incidentLayerGroup = L.layerGroup().addTo(map);
-  let selectedLayer = null;       // currently-selected country outline on the MAIN map
+  let selectedLayer = null;
   const geoCache = {};
 
   function scanFlash(){
@@ -94,8 +83,7 @@
     el.classList.add('active');
   }
 
-  /* ---------------- World (global) layer — permanent, never hidden ---------------- */
-  fetch('geodata/world.json').then(r=>r.json()).then(world=>{
+    fetch('geodata/world.json').then(r=>r.json()).then(world=>{
     worldLayer = L.geoJSON(world, {
       style: baseCountryStyle,
       onEachFeature: (feature, layer)=>{
@@ -110,7 +98,6 @@
     setStatus('cartography-status', 'WORLD SURVEY LOAD FAILED');
   });
 
-  // Outlines are visible immediately for every nation — no hover required.
   function baseCountryStyle(){
     return { color:'#4f6f6a', weight:1, fillColor:'#0e2b26', fillOpacity:0.42 };
   }
@@ -121,11 +108,7 @@
     return { color:'#e0a53f', weight:2, fillColor:'#2a2313', fillOpacity:0.5 };
   }
 
-  /* =======================================================================
-     REGIONAL WINDOW — opens a separate panel with its own map, so the
-     global survey never loses or hides any other nation.
-     ======================================================================= */
-  let regionalMap = null;
+    let regionalMap = null;
   let regionalCountryLayer = L.layerGroup();
   let regionalMarkerLayer = L.layerGroup();
 
@@ -144,7 +127,6 @@
     const name = feature.properties.name;
     const iso3 = COUNTRY_MAP[name];
 
-    // mark the nation as "selected" on the main map without touching any other nation
     if(selectedLayer && selectedLayer !== layer) worldLayer.resetStyle(selectedLayer);
     selectedLayer = layer;
     layer.setStyle(selectedCountryStyle());
@@ -152,7 +134,7 @@
 
     scanFlash();
     document.getElementById('regional-title').textContent = name.toUpperCase();
-    document.getElementById('regional-modal').classList.add('open');
+    document.getElementById('regional-panel').classList.add('open');
 
     const rmap = ensureRegionalMap();
     regionalCountryLayer.clearLayers();
@@ -183,7 +165,6 @@
           'NO REGIONAL SUBDIVISION SURVEY ON FILE — NATIONAL BOUNDARY ONLY';
         rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
       }
-      // plot faction holdings, zones, and incidents that fall within this nation
       plotRegionalMarkers(name);
     }
 
@@ -197,6 +178,7 @@
 
   function plotRegionalMarkers(countryName){
     DATA.factions.forEach(faction=>{
+      if(activeFactionFilter && faction !== activeFactionFilter) return;
       faction.holdings.forEach(h=>{
         if(h.country !== countryName || h.precision === 'orbital') return;
         const m = L.circleMarker([h.lat, h.lon], {
@@ -239,18 +221,12 @@
   }
 
   function closeRegionalWindow(){
-    document.getElementById('regional-modal').classList.remove('open');
+    document.getElementById('regional-panel').classList.remove('open');
     if(selectedLayer){ worldLayer.resetStyle(selectedLayer); selectedLayer = null; }
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);
-  document.getElementById('regional-modal').addEventListener('click', e=>{
-    if(e.target.id === 'regional-modal') closeRegionalWindow();
-  });
 
-  /* =======================================================================
-     FACTION MARKERS
-     ======================================================================= */
-  const holdingMarkers = []; // {marker, faction, holding}
+    const holdingMarkers = [];
 
   function precisionStrokeColor(p){
     switch(p){
@@ -278,6 +254,17 @@
     });
   });
 
+  let activeFactionFilter = null;
+
+  function applyFactionFilter(faction){
+    activeFactionFilter = faction;
+    holdingMarkers.forEach(entry=>{
+      const show = !faction || entry.faction === faction;
+      if(show) factionLayerGroup.addLayer(entry.marker);
+      else factionLayerGroup.removeLayer(entry.marker);
+    });
+  }
+
   function buildHoldingPopup(faction, h){
     const flag = '<span class="precision-flag precision-' + h.precision + '">' + PRECISION_LABEL[h.precision] + '</span>';
     return '<div class="popup-faction">' + escapeHtml(faction.name) + '</div>' +
@@ -293,10 +280,7 @@
     return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
-  /* =======================================================================
-     EXCLUSION ZONES
-     ======================================================================= */
-  DATA.exclusionZones.forEach(z=>{
+    DATA.exclusionZones.forEach(z=>{
     const icon = L.divIcon({
       className: '', html: '<div style="width:10px;height:10px;background:#e0a53f;border:1px solid #0b0f10;transform:rotate(45deg);"></div>',
       iconSize: [10,10], iconAnchor: [5,5]
@@ -312,10 +296,7 @@
     z._marker = marker;
   });
 
-  /* =======================================================================
-     INCIDENTS (Historical Record)
-     ======================================================================= */
-  DATA.incidents.forEach(inc=>{
+    DATA.incidents.forEach(inc=>{
     if(inc.lat === null || inc.lon === null) return;
     const icon = L.divIcon({
       className: '', html: '<div style="width:9px;height:9px;background:#c1453f;border:1px solid #0b0f10;border-radius:50%;"></div>',
@@ -332,10 +313,7 @@
     inc._marker = marker;
   });
 
-  /* =======================================================================
-     LAYER TOGGLES
-     ======================================================================= */
-  document.getElementById('toggle-factions').addEventListener('change', e=>{
+    document.getElementById('toggle-factions').addEventListener('change', e=>{
     if(e.target.checked) map.addLayer(factionLayerGroup); else map.removeLayer(factionLayerGroup);
   });
   document.getElementById('toggle-zones').addEventListener('change', e=>{
@@ -345,10 +323,7 @@
     if(e.target.checked) map.addLayer(incidentLayerGroup); else map.removeLayer(incidentLayerGroup);
   });
 
-  /* =======================================================================
-     SIDEBAR — TABS
-     ======================================================================= */
-  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -357,28 +332,37 @@
     });
   });
 
-  /* ---------------- Dossiers (factions) list ---------------- */
-  const factionListEl = document.getElementById('faction-list');
+    const factionListEl = document.getElementById('faction-list');
   const dossierDetailEl = document.getElementById('dossier-detail');
   const factionSearchEl = document.getElementById('faction-search');
 
   function renderFactionList(filter){
     factionListEl.innerHTML = '';
     const q = (filter || '').trim().toLowerCase();
-    DATA.factions.forEach(faction=>{
-      if(q && !faction.name.toLowerCase().includes(q) && !faction.tag.toLowerCase().includes(q)) return;
+    const visible = DATA.factions.filter(f=>
+      !q || f.name.toLowerCase().includes(q) || f.tag.toLowerCase().includes(q)
+    );
+
+    const count = document.createElement('div');
+    count.className = 'list-count';
+    count.textContent = visible.length + (q ? ' MATCHING' : ' ON FILE');
+    factionListEl.appendChild(count);
+
+    visible.forEach(faction=>{
       const row = document.createElement('div');
       row.className = 'faction-row';
+      row.dataset.tag = faction.tag;
+      row.style.setProperty('--accent', faction.color);
+      if(activeFactionFilter === faction) row.classList.add('active');
       row.innerHTML =
-        '<span class="faction-swatch" style="background:' + faction.color + '"></span>' +
         '<span class="faction-row-text">' +
           '<div class="faction-row-name">' + escapeHtml(faction.name) + '</div>' +
-          '<div class="faction-row-meta">' + faction.tag + ' · ' + faction.holdings.length + ' KNOWN SITES</div>' +
+          '<div class="faction-row-meta"><span class="faction-row-tag">' + faction.tag + '</span> · ' + faction.holdings.length + ' KNOWN SITE' + (faction.holdings.length===1?'':'S') + '</div>' +
         '</span>';
       row.addEventListener('click', ()=> openDossier(faction));
       factionListEl.appendChild(row);
     });
-    if(factionListEl.children.length === 0){
+    if(visible.length === 0){
       factionListEl.innerHTML = '<div class="panel-note">NO MATCHING RECORDS IN ARCHIVE</div>';
     }
   }
@@ -386,6 +370,10 @@
   factionSearchEl.addEventListener('input', ()=> renderFactionList(factionSearchEl.value));
 
   function openDossier(faction){
+    applyFactionFilter(faction);
+    document.querySelectorAll('.faction-row').forEach(r=>{
+      r.classList.toggle('active', r.dataset.tag === faction.tag);
+    });
     document.getElementById('faction-list-wrap').classList.remove('active');
     dossierDetailEl.classList.add('active');
     dossierDetailEl.innerHTML =
@@ -419,6 +407,8 @@
   }
 
   function closeDossier(){
+    applyFactionFilter(null);
+    document.querySelectorAll('.faction-row').forEach(r=> r.classList.remove('active'));
     dossierDetailEl.classList.remove('active');
     dossierDetailEl.innerHTML = '';
     document.getElementById('faction-list-wrap').classList.add('active');
@@ -436,8 +426,8 @@
     setTimeout(()=>{ if(m) m.marker.openPopup(); }, 900);
   }
 
-  /* ---------------- Zones tab ---------------- */
-  const zoneListEl = document.getElementById('zone-list');
+    const zoneListEl = document.getElementById('zone-list');
+  { const c = document.createElement('div'); c.className='list-count'; c.textContent = DATA.exclusionZones.length + ' ON FILE'; zoneListEl.appendChild(c); }
   DATA.exclusionZones.forEach(z=>{
     const item = document.createElement('div');
     item.className = 'zone-item';
@@ -453,8 +443,8 @@
     zoneListEl.appendChild(item);
   });
 
-  /* ---------------- Timeline tab ---------------- */
-  const incidentListEl = document.getElementById('incident-list');
+    const incidentListEl = document.getElementById('incident-list');
+  { const c = document.createElement('div'); c.className='list-count'; c.textContent = DATA.incidents.length + ' RECORDS ON FILE'; incidentListEl.appendChild(c); }
   DATA.incidents.forEach(inc=>{
     const item = document.createElement('div');
     item.className = 'incident-item';
@@ -475,19 +465,11 @@
     incidentListEl.appendChild(item);
   });
 
-  /* =======================================================================
-     LEGEND
-     ======================================================================= */
-  document.getElementById('legend').innerHTML =
-    '<span class="leg-item"><span class="leg-dot" style="background:#5fd4c4"></span>Faction Site</span>' +
-    '<span class="leg-item"><span class="leg-dot" style="background:#e0a53f;border-radius:0;transform:rotate(45deg);"></span>Exclusion Zone</span>' +
-    '<span class="leg-item"><span class="leg-dot" style="background:#c1453f"></span>Historical Incident</span>' +
-    '<span class="leg-item">Stroke: amber=approx · red dashed=classified</span>';
+    document.getElementById('legend').innerHTML =
+    '<span class="leg-item"><span class="leg-key">Amber ring</span> — approximate</span>' +
+    '<span class="leg-item"><span class="leg-key">Red dashed</span> — classified</span>';
 
-  /* =======================================================================
-     STATUS BAR
-     ======================================================================= */
-  function setStatus(id, text){
+    function setStatus(id, text){
     const el = document.getElementById(id);
     if(el) el.textContent = text;
   }
@@ -508,17 +490,11 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  /* =======================================================================
-     ABOUT MODAL
-     ======================================================================= */
-  const modal = document.getElementById('about-modal');
+    const modal = document.getElementById('about-modal');
   document.getElementById('about-btn').addEventListener('click', ()=> modal.classList.add('open'));
   document.getElementById('about-close').addEventListener('click', ()=> modal.classList.remove('open'));
   modal.addEventListener('click', e=>{ if(e.target === modal) modal.classList.remove('open'); });
 
-  /* =======================================================================
-     BOOT
-     ======================================================================= */
-  runBoot();
+    runBoot();
 
 })();

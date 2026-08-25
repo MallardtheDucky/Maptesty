@@ -4,28 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE CONTINUANCE // Global Faction Surveillance Archive</title>
-<meta name="description" content="Riftfall 2032 — an interactive archive of known anomalous factions, their holdings, exclusion zones, and the recorded history of the Rift Era.">
+<meta name="description" content="An interactive archive of known anomalous factions, their holdings, exclusion zones, and the recorded history of the Rift Era.">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- ============================== BOOT SEQUENCE ============================== -->
 <div id="boot">
   <div id="boot-lines"></div>
 </div>
 
-<!-- ============================== APP SHELL ============================== -->
 <div id="shell">
 
-  <!-- ---------------- TOP BAR ---------------- -->
   <header id="topbar">
     <div class="brand">
       <div class="brand-mark">RF</div>
       <div class="brand-text">
         <h1>The Continuance</h1>
-        <div class="sub">Global Faction Surveillance Archive · Riftfall 2032</div>
+        <div class="sub">Global Faction Surveillance Archive</div>
       </div>
     </div>
     <div class="topbar-spacer"></div>
@@ -41,7 +38,6 @@
     <div class="clearance-badge">CLEARANCE: OBSERVER</div>
   </header>
 
-  <!-- ---------------- SIDEBAR ---------------- -->
   <aside id="sidebar">
     <div class="tabs">
       <button class="tab-btn active" data-tab="tab-dossiers">Dossiers</button>
@@ -49,7 +45,6 @@
       <button class="tab-btn" data-tab="tab-timeline">Timeline</button>
     </div>
 
-    <!-- DOSSIERS TAB -->
     <div class="tab-panel active" id="tab-dossiers">
       <div id="faction-list-wrap" class="tab-panel active" style="flex:1; display:flex; flex-direction:column; min-height:0;">
         <div class="search-row">
@@ -60,34 +55,38 @@
       <div id="dossier-detail"></div>
     </div>
 
-    <!-- ZONES TAB -->
     <div class="tab-panel" id="tab-zones">
       <div class="panel-note">PUBLICLY ACKNOWLEDGED ANOMALOUS EXCLUSION ZONES. SEVERAL PREDATE DISCLOSURE. AN UNKNOWN NUMBER REMAIN UNLISTED.</div>
       <div class="list-scroll" id="zone-list"></div>
     </div>
 
-    <!-- TIMELINE TAB -->
     <div class="tab-panel" id="tab-timeline">
       <div class="panel-note">SELECTED RECORDS FROM 1806 TO PRESENT. ENTRIES WITH KNOWN COORDINATES CAN BE OPENED ON THE SURVEY MAP.</div>
       <div class="list-scroll" id="incident-list"></div>
     </div>
   </aside>
 
-  <!-- ---------------- MAP ---------------- -->
   <div id="map-wrap">
     <div id="map"></div>
     <div id="scan-flash"></div>
-    <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL WINDOW</span></div>
+    <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL SURVEY</span></div>
     <div id="layer-control">
       <div class="lc-title">Survey Layers</div>
       <label class="lc-row"><input type="checkbox" id="toggle-factions" checked><span class="lc-swatch" style="background:#5fd4c4"></span> Faction Holdings</label>
-      <label class="lc-row"><input type="checkbox" id="toggle-zones" checked><span class="lc-swatch" style="background:#e0a53f"></span> Exclusion Zones</label>
+      <label class="lc-row"><input type="checkbox" id="toggle-zones" checked><span class="lc-swatch" style="background:#e0a53f; border-radius:0; transform:rotate(45deg);"></span> Exclusion Zones</label>
       <label class="lc-row"><input type="checkbox" id="toggle-incidents" checked><span class="lc-swatch" style="background:#c1453f"></span> Historical Incidents</label>
+      <div class="lc-divider"></div>
+      <div id="legend"></div>
     </div>
-    <div id="legend"></div>
+
+    <div id="regional-panel">
+      <button class="modal-close" id="regional-close">&times;</button>
+      <h2 id="regional-title">Regional Survey</h2>
+      <div class="panel-note" id="regional-note" style="border:none; padding:0 0 10px; margin:0;"></div>
+      <div id="regional-map"></div>
+    </div>
   </div>
 
-  <!-- ---------------- STATUS BAR ---------------- -->
   <footer id="statusbar">
     <span class="dot"></span>
     <span>UPLINK ACTIVE</span>
@@ -98,17 +97,6 @@
 
 </div>
 
-<!-- ============================== REGIONAL WINDOW ============================== -->
-<div class="modal-backdrop" id="regional-modal">
-  <div class="modal-box regional-box">
-    <button class="modal-close" id="regional-close">&times;</button>
-    <h2 id="regional-title">Regional Survey</h2>
-    <div class="panel-note" id="regional-note" style="border:none; padding:0 0 10px; margin:0;"></div>
-    <div id="regional-map"></div>
-  </div>
-</div>
-
-<!-- ============================== ABOUT MODAL ============================== -->
 <div class="modal-backdrop" id="about-modal">
   <div class="modal-box">
     <button class="modal-close" id="about-close">&times;</button>

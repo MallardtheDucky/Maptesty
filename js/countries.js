@@ -1,5 +1,3 @@
-// Maps the "name" property found in geodata/world.json to the ISO3 code
-// used for the subdivision file in geodata/countries/{ISO3}.json
 window.RIFTFALL_COUNTRY_MAP = {
   "United States of America": "USA",
   "Canada": "CAN",
@@ -36,5 +34,6 @@ window.RIFTFALL_COUNTRY_MAP = {
   "Kenya": "KEN",
   "Romania": "ROU",
   "Australia": "AUS",
-  "Iceland": "ISL"
+  "Iceland": "ISL",
+  "Faeroe Is.": "FRO"
 };

@@ -2,14 +2,9 @@
 (function(){
   "use strict";
 
-  const DATA = window.RIFTFALL_DATA;
-  const COUNTRY_MAP = window.RIFTFALL_COUNTRY_MAP;
+  const DATA = window.CONTINUANCE_DATA;
+  const COUNTRY_MAP = window.CONTINUANCE_COUNTRY_MAP;
 
-    // Restrained, low-saturation palette. Amber and red are deliberately
-  // excluded here — those two are reserved elsewhere in the UI for
-  // "approximate" and "classified" meaning, so reusing them per-faction
-  // would blur signal with noise. A short cycling set reads as one
-  // coherent filing system instead of a wall of distinct hues.
   const FACTION_COLORS = [
     "#5fd4c4","#7c93b0","#9b8fc9","#7fae8a",
     "#a98fae","#7ea3ae","#a99b7c","#6f8fa3"
@@ -30,7 +25,7 @@
     "CROSS-REFERENCING 25 KNOWN ENTITIES .......... OK",
     "CLEARANCE LEVEL: OBSERVER — READ ONLY",
     "",
-    "WELCOME TO THE RIFTFALL SURVEILLANCE ARCHIVE"
+    "WELCOME TO THE CONTINUANCE SURVEILLANCE ARCHIVE"
   ];
   function runBoot(){
     const boot = document.getElementById('boot');
@@ -64,10 +59,9 @@
     minZoom: 2,
     maxZoom: 9,
     worldCopyJump: true,
-    zoomControl: false, // added manually below, bottom-left — top-left is the breadcrumb bar's spot
+    zoomControl: true,
     attributionControl: true
   });
-  L.control.zoom({ position: 'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) — Rendered with Leaflet');
 
   let worldLayer = null;
@@ -136,7 +130,6 @@
   function openRegionalWindow(feature, layer){
     const name = feature.properties.name;
     const iso3 = COUNTRY_MAP[name];
-    currentRegionalCountryName = name;
 
     if(selectedLayer && selectedLayer !== layer) worldLayer.resetStyle(selectedLayer);
     selectedLayer = layer;
@@ -168,8 +161,6 @@
         document.getElementById('regional-note').textContent =
           sub.getLayers().length + ' INTERNAL DIVISION' + (sub.getLayers().length===1?'':'S') + ' ON RECORD';
         if(iso3 === 'RUS'){
-          // Russia crosses the antimeridian; getBounds() would treat the
-          // Chukotka pieces at +/-180 as a nearly world-wide extent.
           rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
         } else {
           rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
@@ -197,10 +188,13 @@
     }).then(gj=>{ geoCache[iso3] = gj; finish(gj); }).catch(()=> finish(null));
   }
 
-  let currentRegionalCountryName = null;
+  function locMatchesCountry(loc, countryName){
+    // Word-boundary match so "Niger" doesn't false-match inside "Nigeria", etc.
+    const escaped = countryName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[^A-Za-z])' + escaped + '($|[^A-Za-z])').test(loc);
+  }
 
   function plotRegionalMarkers(countryName){
-    regionalMarkerLayer.clearLayers();
     DATA.factions.forEach(faction=>{
       if(activeFactionFilter && faction !== activeFactionFilter) return;
       faction.holdings.forEach(h=>{
@@ -215,7 +209,7 @@
       });
     });
     DATA.exclusionZones.forEach(z=>{
-      if(!z.loc.includes(countryName)) return;
+      if(!locMatchesCountry(z.loc, countryName)) return;
       const icon = L.divIcon({
         className: '', html: '<div style="width:10px;height:10px;background:#e0a53f;border:1px solid #0b0f10;transform:rotate(45deg);"></div>',
         iconSize: [10,10], iconAnchor: [5,5]
@@ -229,7 +223,7 @@
       m.addTo(regionalMarkerLayer);
     });
     DATA.incidents.forEach(inc=>{
-      if(inc.lat === null || !inc.loc.includes(countryName)) return;
+      if(inc.lat === null || !locMatchesCountry(inc.loc, countryName)) return;
       const icon = L.divIcon({
         className: '', html: '<div style="width:9px;height:9px;background:#c1453f;border:1px solid #0b0f10;border-radius:50%;"></div>',
         iconSize: [9,9], iconAnchor: [4,4]
@@ -247,66 +241,8 @@
   function closeRegionalWindow(){
     document.getElementById('regional-panel').classList.remove('open');
     if(selectedLayer){ worldLayer.resetStyle(selectedLayer); selectedLayer = null; }
-    currentRegionalCountryName = null;
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);
-
-    // The regional survey box can be dragged around by its header, so
-  // analysts can reposition it instead of it always sitting over the
-  // same patch of map.
-  (function enableRegionalDrag(){
-    const panel = document.getElementById('regional-panel');
-    const handle = document.getElementById('regional-header');
-    let dragging = false, offsetX = 0, offsetY = 0;
-
-    function pointOf(e){ return e.touches ? e.touches[0] : e; }
-
-    function onDown(e){
-      if(e.target.closest('#regional-close')) return;
-      const rect = panel.getBoundingClientRect();
-      // Switch from right/bottom-anchored to explicit left/top so the
-      // panel can be freely repositioned, locking its current size.
-      panel.style.left = rect.left + 'px';
-      panel.style.top = rect.top + 'px';
-      panel.style.right = 'auto';
-      panel.style.bottom = 'auto';
-      panel.style.width = rect.width + 'px';
-      panel.style.height = rect.height + 'px';
-      const p = pointOf(e);
-      offsetX = p.clientX - rect.left;
-      offsetY = p.clientY - rect.top;
-      dragging = true;
-      panel.classList.add('dragging');
-      e.preventDefault();
-    }
-
-    function onMove(e){
-      if(!dragging) return;
-      const p = pointOf(e);
-      const wrap = document.getElementById('map-wrap').getBoundingClientRect();
-      const rect = panel.getBoundingClientRect();
-      let x = p.clientX - offsetX;
-      let y = p.clientY - offsetY;
-      x = Math.max(wrap.left, Math.min(x, wrap.right - rect.width));
-      y = Math.max(wrap.top, Math.min(y, wrap.bottom - rect.height));
-      panel.style.left = x + 'px';
-      panel.style.top = y + 'px';
-      e.preventDefault();
-    }
-
-    function onUp(){
-      if(!dragging) return;
-      dragging = false;
-      panel.classList.remove('dragging');
-    }
-
-    handle.addEventListener('mousedown', onDown);
-    handle.addEventListener('touchstart', onDown, { passive:false });
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('touchmove', onMove, { passive:false });
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchend', onUp);
-  })();
 
     const holdingMarkers = [];
 
@@ -337,7 +273,6 @@
   });
 
   let activeFactionFilter = null;
-  const resetFilterBtn = document.getElementById('reset-faction-filter');
 
   function applyFactionFilter(faction){
     activeFactionFilter = faction;
@@ -346,22 +281,7 @@
       if(show) factionLayerGroup.addLayer(entry.marker);
       else factionLayerGroup.removeLayer(entry.marker);
     });
-
-    // If a regional survey window is open, its marker set was drawn
-    // against whatever filter was active at the time — refresh it so
-    // it stays in sync rather than showing a stale subset.
-    if(currentRegionalCountryName){
-      plotRegionalMarkers(currentRegionalCountryName);
-    }
-
-    if(faction){
-      resetFilterBtn.textContent = '\u2715 CLEAR FILTER: ' + faction.tag + ' \u2014 SHOW ALL';
-      resetFilterBtn.classList.add('show');
-    } else {
-      resetFilterBtn.classList.remove('show');
-    }
   }
-  resetFilterBtn.addEventListener('click', closeDossier);
 
   function buildHoldingPopup(faction, h){
     const flag = '<span class="precision-flag precision-' + h.precision + '">' + PRECISION_LABEL[h.precision] + '</span>';
@@ -593,55 +513,16 @@
   document.getElementById('about-close').addEventListener('click', ()=> modal.classList.remove('open'));
   modal.addEventListener('click', e=>{ if(e.target === modal) modal.classList.remove('open'); });
 
-    // ---- Breadcrumb bar hide/show ----
-  (function setupBreadcrumbToggle(){
-    const bar = document.getElementById('breadcrumb');
-    const showBtn = document.getElementById('breadcrumb-show');
-    document.getElementById('breadcrumb-toggle').addEventListener('click', ()=>{
-      bar.classList.add('collapsed');
-      showBtn.classList.add('show');
-    });
-    showBtn.addEventListener('click', ()=>{
-      bar.classList.remove('collapsed');
-      showBtn.classList.remove('show');
-    });
-  })();
-
-    // ---- Mobile sidebar (Dossiers/Zones/Timeline) as a slide-up panel ----
-  const MOBILE_BREAKPOINT = 880;
-  function isMobileLayout(){ return window.innerWidth <= MOBILE_BREAKPOINT; }
-
-  const sidebarEl = document.getElementById('sidebar');
-  const sidebarFab = document.getElementById('sidebar-fab');
-
-  function setMobileSidebarOpen(open){
-    sidebarEl.classList.toggle('mobile-open', open);
-    sidebarFab.classList.toggle('is-open', open);
-    sidebarFab.innerHTML = open ? '&times; Close' : '&#9776; Dossiers';
-  }
-  function closeMobileSidebar(){
-    if(isMobileLayout()) setMobileSidebarOpen(false);
-  }
-  sidebarFab.addEventListener('click', ()=>{
-    setMobileSidebarOpen(!sidebarEl.classList.contains('mobile-open'));
-  });
-  const sidebarMobileClose = document.getElementById('sidebar-mobile-close');
-  if(sidebarMobileClose) sidebarMobileClose.addEventListener('click', closeMobileSidebar);
-
-  // Jumping to a location on the map is the point of tapping a list row —
-  // drop back to the map automatically so the result is actually visible.
-  map.on('click', closeMobileSidebar);
-  // Faction rows just open a dossier's holdings list (still useful to browse
-  // on mobile), but zone/incident/holding rows fly the map to a point — those
-  // are the ones worth dropping the panel for.
-  ['zone-list','incident-list','holding-list'].forEach(id=>{
-    document.addEventListener('click', e=>{
-      if(e.target.closest('#' + id) && e.target.closest('.zone-item, .incident-item, .holding-item')){
-        closeMobileSidebar();
-      }
-    });
-  });
-
     runBoot();
+
+    const shellEl = document.getElementById('shell');
+  const hideBarBtn = document.getElementById('hide-bar-btn');
+  const showBarTab = document.getElementById('show-bar-tab');
+  function setBarHidden(hidden){
+    shellEl.classList.toggle('bar-hidden', hidden);
+    showBarTab.classList.toggle('visible', hidden);
+  }
+  hideBarBtn.addEventListener('click', ()=> setBarHidden(true));
+  showBarTab.addEventListener('click', ()=> setBarHidden(false));
 
 })();

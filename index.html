@@ -19,7 +19,6 @@
 
   <header id="topbar">
     <div class="brand">
-      <div class="brand-mark">RF</div>
       <div class="brand-text">
         <h1>The Continuance</h1>
         <div class="sub">Global Faction Surveillance Archive</div>
@@ -36,13 +35,12 @@
     </div>
     <button class="topbar-link" id="about-btn">ABOUT THIS ARCHIVE</button>
     <div class="clearance-badge">CLEARANCE: OBSERVER</div>
+    <button class="topbar-link" id="hide-bar-btn" title="Hide this bar" aria-label="Hide this bar">HIDE ▲</button>
   </header>
 
+  <button id="show-bar-tab" title="Show top bar" aria-label="Show top bar">▼ SHOW BAR</button>
+
   <aside id="sidebar">
-    <div id="sidebar-mobile-header">
-      <span>Archive Panel</span>
-      <button class="modal-close" id="sidebar-mobile-close">&times;</button>
-    </div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="tab-dossiers">Dossiers</button>
       <button class="tab-btn" data-tab="tab-zones">Zones</button>
@@ -70,13 +68,10 @@
     </div>
   </aside>
 
-  <button id="sidebar-fab">&#9776; Dossiers</button>
-
   <div id="map-wrap">
     <div id="map"></div>
     <div id="scan-flash"></div>
-    <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL SURVEY</span><button id="breadcrumb-toggle" title="Hide this bar">&minus;</button></div>
-    <button id="breadcrumb-show" title="Show survey bar">&#9776;</button>
+    <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL SURVEY</span></div>
     <div id="layer-control">
       <div class="lc-title">Survey Layers</div>
       <label class="lc-row"><input type="checkbox" id="toggle-factions" checked><span class="lc-swatch" style="background:#5fd4c4"></span> Faction Holdings</label>
@@ -84,14 +79,11 @@
       <label class="lc-row"><input type="checkbox" id="toggle-incidents" checked><span class="lc-swatch" style="background:#c1453f"></span> Historical Incidents</label>
       <div class="lc-divider"></div>
       <div id="legend"></div>
-      <button id="reset-faction-filter" class="lc-reset-btn">&times; CLEAR FILTER — SHOW ALL FACTIONS</button>
     </div>
 
     <div id="regional-panel">
-      <div id="regional-header">
-        <h2 id="regional-title">Regional Survey</h2>
-        <button class="modal-close" id="regional-close">&times;</button>
-      </div>
+      <button class="modal-close" id="regional-close">&times;</button>
+      <h2 id="regional-title">Regional Survey</h2>
       <div class="panel-note" id="regional-note" style="border:none; padding:0 0 10px; margin:0;"></div>
       <div id="regional-map"></div>
     </div>

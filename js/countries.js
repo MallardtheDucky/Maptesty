@@ -1,4 +1,4 @@
-window.RIFTFALL_COUNTRY_MAP = {
+window.CONTINUANCE_COUNTRY_MAP = {
   "United States of America": "USA",
   "Canada": "CAN",
   "United Kingdom": "GBR",

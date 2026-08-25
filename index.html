@@ -35,10 +35,12 @@
     </div>
     <button class="topbar-link" id="about-btn">ABOUT THIS ARCHIVE</button>
     <div class="clearance-badge">CLEARANCE: OBSERVER</div>
+    <button class="topbar-link" id="hide-sidebar-btn" title="Hide sidebar" aria-label="Hide sidebar">☰ PANEL</button>
     <button class="topbar-link" id="hide-bar-btn" title="Hide this bar" aria-label="Hide this bar">HIDE ▲</button>
   </header>
 
   <button id="show-bar-tab" title="Show top bar" aria-label="Show top bar">▼ SHOW BAR</button>
+  <button id="show-sidebar-tab" title="Show sidebar" aria-label="Show sidebar">☰</button>
 
   <aside id="sidebar">
     <div class="tabs">
@@ -48,7 +50,7 @@
     </div>
 
     <div class="tab-panel active" id="tab-dossiers">
-      <div id="faction-list-wrap" class="tab-panel active" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div id="faction-list-wrap" class="active">
         <div class="search-row">
           <input type="text" id="faction-search" placeholder="SEARCH FACTION REGISTER…" autocomplete="off">
         </div>

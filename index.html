@@ -77,7 +77,7 @@
   <div id="map-wrap">
     <div id="map"></div>
     <div id="scan-flash"></div>
-    <div id="breadcrumb"><span class="seg current">GLOBAL VIEW</span></div>
+    <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL WINDOW</span></div>
     <div id="layer-control">
       <div class="lc-title">Survey Layers</div>
       <label class="lc-row"><input type="checkbox" id="toggle-factions" checked><span class="lc-swatch" style="background:#5fd4c4"></span> Faction Holdings</label>
@@ -96,6 +96,16 @@
     <span id="entity-count">—</span>
   </footer>
 
+</div>
+
+<!-- ============================== REGIONAL WINDOW ============================== -->
+<div class="modal-backdrop" id="regional-modal">
+  <div class="modal-box regional-box">
+    <button class="modal-close" id="regional-close">&times;</button>
+    <h2 id="regional-title">Regional Survey</h2>
+    <div class="panel-note" id="regional-note" style="border:none; padding:0 0 10px; margin:0;"></div>
+    <div id="regional-map"></div>
+  </div>
 </div>
 
 <!-- ============================== ABOUT MODAL ============================== -->

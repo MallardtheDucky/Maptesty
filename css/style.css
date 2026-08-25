@@ -374,6 +374,13 @@ a{ color: var(--teal); }
 }
 .modal-close:hover{ color: var(--teal); border-color: var(--teal-dim); }
 .modal-box{ position:relative; }
+.regional-box{ width:min(1000px, 94vw); }
+#regional-map{
+  height:62vh; width:100%; margin-top:6px;
+  border:1px solid var(--line-bright); background:#04191a;
+}
+.regional-box .leaflet-container{ background:#04191a; }
+
 .topbar-link{
   background:none; border:1px solid var(--line); color: var(--text-dim);
   font-family: var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;

@@ -64,9 +64,10 @@
     minZoom: 2,
     maxZoom: 9,
     worldCopyJump: true,
-    zoomControl: true,
+    zoomControl: false, // added manually below, bottom-left — top-left is the breadcrumb bar's spot
     attributionControl: true
   });
+  L.control.zoom({ position: 'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) — Rendered with Leaflet');
 
   let worldLayer = null;
@@ -84,14 +85,23 @@
   }
 
     fetch('geodata/world.json').then(r=>r.json()).then(world=>{
-    worldLayer = L.geoJSON(world, {
+
+    const makeWorld = (offset)=> L.geoJSON(world, {
+      coordsToLatLng: coords => L.latLng(coords[1], coords[0] + offset),
       style: baseCountryStyle,
       onEachFeature: (feature, layer)=>{
         layer.on('mouseover', ()=>{ if(layer !== selectedLayer) layer.setStyle(hoverCountryStyle()); });
         layer.on('mouseout', ()=>{ if(layer !== selectedLayer) layer.setStyle(baseCountryStyle()); });
         layer.on('click', ()=> openRegionalWindow(feature, layer));
       }
-    }).addTo(map);
+    });
+
+    worldLayer = L.layerGroup([
+      makeWorld(-360),
+      makeWorld(0),
+      makeWorld(360)
+    ]).addTo(map);
+
     setStatus('cartography-status', 'WORLD SURVEY LOADED');
   }).catch(err=>{
     console.error(err);
@@ -126,6 +136,7 @@
   function openRegionalWindow(feature, layer){
     const name = feature.properties.name;
     const iso3 = COUNTRY_MAP[name];
+    currentRegionalCountryName = name;
 
     if(selectedLayer && selectedLayer !== layer) worldLayer.resetStyle(selectedLayer);
     selectedLayer = layer;
@@ -156,14 +167,24 @@
         }).addTo(regionalCountryLayer);
         document.getElementById('regional-note').textContent =
           sub.getLayers().length + ' INTERNAL DIVISION' + (sub.getLayers().length===1?'':'S') + ' ON RECORD';
-        rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
+        if(iso3 === 'RUS'){
+          // Russia crosses the antimeridian; getBounds() would treat the
+          // Chukotka pieces at +/-180 as a nearly world-wide extent.
+          rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
+        } else {
+          rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
+        }
       } else {
         const outline = L.geoJSON(feature, {
           style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
         }).addTo(regionalCountryLayer);
         document.getElementById('regional-note').textContent =
           'NO REGIONAL SUBDIVISION SURVEY ON FILE — NATIONAL BOUNDARY ONLY';
-        rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
+        if(iso3 === 'RUS'){
+          rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
+        } else {
+          rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
+        }
       }
       plotRegionalMarkers(name);
     }
@@ -176,7 +197,10 @@
     }).then(gj=>{ geoCache[iso3] = gj; finish(gj); }).catch(()=> finish(null));
   }
 
+  let currentRegionalCountryName = null;
+
   function plotRegionalMarkers(countryName){
+    regionalMarkerLayer.clearLayers();
     DATA.factions.forEach(faction=>{
       if(activeFactionFilter && faction !== activeFactionFilter) return;
       faction.holdings.forEach(h=>{
@@ -223,8 +247,66 @@
   function closeRegionalWindow(){
     document.getElementById('regional-panel').classList.remove('open');
     if(selectedLayer){ worldLayer.resetStyle(selectedLayer); selectedLayer = null; }
+    currentRegionalCountryName = null;
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);
+
+    // The regional survey box can be dragged around by its header, so
+  // analysts can reposition it instead of it always sitting over the
+  // same patch of map.
+  (function enableRegionalDrag(){
+    const panel = document.getElementById('regional-panel');
+    const handle = document.getElementById('regional-header');
+    let dragging = false, offsetX = 0, offsetY = 0;
+
+    function pointOf(e){ return e.touches ? e.touches[0] : e; }
+
+    function onDown(e){
+      if(e.target.closest('#regional-close')) return;
+      const rect = panel.getBoundingClientRect();
+      // Switch from right/bottom-anchored to explicit left/top so the
+      // panel can be freely repositioned, locking its current size.
+      panel.style.left = rect.left + 'px';
+      panel.style.top = rect.top + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      panel.style.width = rect.width + 'px';
+      panel.style.height = rect.height + 'px';
+      const p = pointOf(e);
+      offsetX = p.clientX - rect.left;
+      offsetY = p.clientY - rect.top;
+      dragging = true;
+      panel.classList.add('dragging');
+      e.preventDefault();
+    }
+
+    function onMove(e){
+      if(!dragging) return;
+      const p = pointOf(e);
+      const wrap = document.getElementById('map-wrap').getBoundingClientRect();
+      const rect = panel.getBoundingClientRect();
+      let x = p.clientX - offsetX;
+      let y = p.clientY - offsetY;
+      x = Math.max(wrap.left, Math.min(x, wrap.right - rect.width));
+      y = Math.max(wrap.top, Math.min(y, wrap.bottom - rect.height));
+      panel.style.left = x + 'px';
+      panel.style.top = y + 'px';
+      e.preventDefault();
+    }
+
+    function onUp(){
+      if(!dragging) return;
+      dragging = false;
+      panel.classList.remove('dragging');
+    }
+
+    handle.addEventListener('mousedown', onDown);
+    handle.addEventListener('touchstart', onDown, { passive:false });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive:false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+  })();
 
     const holdingMarkers = [];
 
@@ -255,6 +337,7 @@
   });
 
   let activeFactionFilter = null;
+  const resetFilterBtn = document.getElementById('reset-faction-filter');
 
   function applyFactionFilter(faction){
     activeFactionFilter = faction;
@@ -263,7 +346,22 @@
       if(show) factionLayerGroup.addLayer(entry.marker);
       else factionLayerGroup.removeLayer(entry.marker);
     });
+
+    // If a regional survey window is open, its marker set was drawn
+    // against whatever filter was active at the time — refresh it so
+    // it stays in sync rather than showing a stale subset.
+    if(currentRegionalCountryName){
+      plotRegionalMarkers(currentRegionalCountryName);
+    }
+
+    if(faction){
+      resetFilterBtn.textContent = '\u2715 CLEAR FILTER: ' + faction.tag + ' \u2014 SHOW ALL';
+      resetFilterBtn.classList.add('show');
+    } else {
+      resetFilterBtn.classList.remove('show');
+    }
   }
+  resetFilterBtn.addEventListener('click', closeDossier);
 
   function buildHoldingPopup(faction, h){
     const flag = '<span class="precision-flag precision-' + h.precision + '">' + PRECISION_LABEL[h.precision] + '</span>';
@@ -494,6 +592,55 @@
   document.getElementById('about-btn').addEventListener('click', ()=> modal.classList.add('open'));
   document.getElementById('about-close').addEventListener('click', ()=> modal.classList.remove('open'));
   modal.addEventListener('click', e=>{ if(e.target === modal) modal.classList.remove('open'); });
+
+    // ---- Breadcrumb bar hide/show ----
+  (function setupBreadcrumbToggle(){
+    const bar = document.getElementById('breadcrumb');
+    const showBtn = document.getElementById('breadcrumb-show');
+    document.getElementById('breadcrumb-toggle').addEventListener('click', ()=>{
+      bar.classList.add('collapsed');
+      showBtn.classList.add('show');
+    });
+    showBtn.addEventListener('click', ()=>{
+      bar.classList.remove('collapsed');
+      showBtn.classList.remove('show');
+    });
+  })();
+
+    // ---- Mobile sidebar (Dossiers/Zones/Timeline) as a slide-up panel ----
+  const MOBILE_BREAKPOINT = 880;
+  function isMobileLayout(){ return window.innerWidth <= MOBILE_BREAKPOINT; }
+
+  const sidebarEl = document.getElementById('sidebar');
+  const sidebarFab = document.getElementById('sidebar-fab');
+
+  function setMobileSidebarOpen(open){
+    sidebarEl.classList.toggle('mobile-open', open);
+    sidebarFab.classList.toggle('is-open', open);
+    sidebarFab.innerHTML = open ? '&times; Close' : '&#9776; Dossiers';
+  }
+  function closeMobileSidebar(){
+    if(isMobileLayout()) setMobileSidebarOpen(false);
+  }
+  sidebarFab.addEventListener('click', ()=>{
+    setMobileSidebarOpen(!sidebarEl.classList.contains('mobile-open'));
+  });
+  const sidebarMobileClose = document.getElementById('sidebar-mobile-close');
+  if(sidebarMobileClose) sidebarMobileClose.addEventListener('click', closeMobileSidebar);
+
+  // Jumping to a location on the map is the point of tapping a list row —
+  // drop back to the map automatically so the result is actually visible.
+  map.on('click', closeMobileSidebar);
+  // Faction rows just open a dossier's holdings list (still useful to browse
+  // on mobile), but zone/incident/holding rows fly the map to a point — those
+  // are the ones worth dropping the panel for.
+  ['zone-list','incident-list','holding-list'].forEach(id=>{
+    document.addEventListener('click', e=>{
+      if(e.target.closest('#' + id) && e.target.closest('.zone-item, .incident-item, .holding-item')){
+        closeMobileSidebar();
+      }
+    });
+  });
 
     runBoot();
 

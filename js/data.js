@@ -847,7 +847,7 @@ window.CONTINUANCE_DATA = {
       "tag": "AETHER",
       "holdings": [
         {
-          "name": "AETHER Fairbanks Facility",
+          "name": "Headquarters",
           "loc": "Fairbanks, Alaska, United States",
           "lat": 64.8378,
           "lon": -147.7164,
@@ -855,7 +855,7 @@ window.CONTINUANCE_DATA = {
           "precision": "confirmed"
         },
         {
-          "name": "AETHER Anchorage Facility",
+          "name": "Anchorage Underground Facility",
           "loc": "Anchorage, Alaska, United States",
           "lat": 61.2181,
           "lon": -149.9003,
@@ -863,7 +863,7 @@ window.CONTINUANCE_DATA = {
           "precision": "confirmed"
         },
         {
-          "name": "AETHER Upernavik Station",
+          "name": "Anomaly Detection & Capture Team",
           "loc": "Upernavik, Avannaata, Greenland",
           "lat": 72.7869,
           "lon": -56.1472,
@@ -871,7 +871,7 @@ window.CONTINUANCE_DATA = {
           "precision": "confirmed"
         },
         {
-          "name": "AETHER Vancouver Depot",
+          "name": "Anomaly Detection & Capture Team",
           "loc": "Vancouver, British Columbia, Canada",
           "lat": 49.2604,
           "lon": -123.114,

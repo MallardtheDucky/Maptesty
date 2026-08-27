@@ -608,7 +608,7 @@
   function renderSnapshotCanvas(){
     const { holdings, zones, incidents } = buildSnapshotPoints();
 
-    let latMin = -60, latMax = 83, lonMin = -180, lonMax = 180;
+    let latMin = -85.05, latMax = 83, lonMin = -180, lonMax = 180;
     holdings.concat(zones, incidents).forEach(p=>{
       if(p.lat < latMin) latMin = p.lat - 4;
       if(p.lat > latMax) latMax = p.lat + 4;
@@ -654,7 +654,7 @@
       const p1 = project(lon, latMax), p2 = project(lon, latMin);
       ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
     }
-    for(let lat = -60; lat <= 80; lat += 20){
+    for(let lat = -80; lat <= 80; lat += 20){
       if(lat < latMin || lat > latMax) continue;
       const p1 = project(lonMin, lat), p2 = project(lonMax, lat);
       ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();

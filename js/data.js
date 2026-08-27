@@ -937,8 +937,8 @@ window.CONTINUANCE_DATA = {
     {
       "name": "The Red Basin",
       "loc": "United States of America",
-      "lat": 37.0,
-      "lon": -111.0,
+      "lat": 33.85,
+      "lon": -97.91,
       "note": "Publicly acknowledged exclusion zone."
     },
     {

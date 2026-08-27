@@ -27,7 +27,7 @@
     <div class="topbar-spacer"></div>
     <div class="topbar-stat">
       <span>Archive Time</span>
-      <b id="clock">— — —</b>
+      <b id="clock">· · ·</b>
     </div>
     <div class="topbar-stat">
       <span>Cartography</span>
@@ -74,13 +74,19 @@
     <div id="map"></div>
     <div id="scan-flash"></div>
     <div id="breadcrumb"><span class="seg current">GLOBAL SURVEY</span><span>·</span><span class="seg">CLICK A NATION TO OPEN ITS REGIONAL SURVEY</span></div>
+    <button id="show-layers-tab" title="Show survey layers" aria-label="Show survey layers">☰ LAYERS</button>
     <div id="layer-control">
-      <div class="lc-title">Survey Layers</div>
+      <div class="lc-header">
+        <div class="lc-title">Survey Layers</div>
+        <button class="lc-close" id="layer-control-close" title="Hide layers" aria-label="Hide survey layers">&times;</button>
+      </div>
       <label class="lc-row"><input type="checkbox" id="toggle-factions" checked><span class="lc-swatch" style="background:#5fd4c4"></span> Faction Holdings</label>
       <label class="lc-row"><input type="checkbox" id="toggle-zones" checked><span class="lc-swatch" style="background:#e0a53f; border-radius:0; transform:rotate(45deg);"></span> Exclusion Zones</label>
       <label class="lc-row"><input type="checkbox" id="toggle-incidents" checked><span class="lc-swatch" style="background:#c1453f"></span> Historical Incidents</label>
       <div class="lc-divider"></div>
       <div id="legend"></div>
+      <div class="lc-divider"></div>
+      <button class="lc-btn" id="capture-snapshot-btn">⤓ Capture Survey Image</button>
     </div>
 
     <div id="regional-panel">
@@ -94,9 +100,9 @@
   <footer id="statusbar">
     <span class="dot"></span>
     <span>UPLINK ACTIVE</span>
-    <span id="coord-readout">LAT — LON —</span>
+    <span id="coord-readout">LAT · LON ·</span>
     <span class="grow"></span>
-    <span id="entity-count">—</span>
+    <span id="entity-count">·</span>
   </footer>
 
 </div>
@@ -105,16 +111,17 @@
   <div class="modal-box">
     <button class="modal-close" id="about-close">&times;</button>
     <h2>About This Archive</h2>
-    <p>This survey is compiled and maintained under Continuance protocol, cross-referencing faction holding disclosures against the Continuance's own institutional memory — a record stretching, in fragments, toward 1806.</p>
-    <p>Site markers are flagged by confidence: <strong style="color:#5fd4c4">CONFIRMED</strong> locations are drawn from verified disclosures, <strong style="color:#e0a53f">APPROXIMATE</strong> locations are drawn from partial or redacted records, and <strong style="color:#c1453f">CLASSIFIED</strong> markers indicate a site whose true location remains unknown to this archive — their map position is a placeholder within the stated region only.</p>
+    <p>This survey is compiled and maintained under Continuance protocol, cross referencing faction holding disclosures against the Continuance's own institutional memory, a record stretching, in fragments, toward 1806.</p>
+    <p>Site markers are flagged by confidence: <strong style="color:#5fd4c4">CONFIRMED</strong> locations are drawn from verified disclosures, <strong style="color:#e0a53f">APPROXIMATE</strong> locations are drawn from partial or redacted records, and <strong style="color:#c1453f">CLASSIFIED</strong> markers indicate a site whose true location remains unknown to this archive. Their map position is a placeholder within the stated region only.</p>
     <p>Click any country on the survey map to zoom in and reveal its internal states, provinces, or territories. Use <strong>Dossiers</strong> to browse factions directly, <strong>Zones</strong> to review publicly acknowledged Exclusion Zones, and <strong>Timeline</strong> to review the historical record of the Rift Era.</p>
-    <p style="color:#4d5a5d; font-size:11.5px; margin-top:18px;">Cartographic data: Natural Earth (custom compilation) and amCharts geodata, both used under their respective free-use terms. Map rendering by Leaflet — no proprietary charting watermark is present on this archive.</p>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="js/countries.js"></script>
 <script src="js/data.js"></script>
+<script src="js/geo-world.js"></script>
+<script src="js/geo-countries.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

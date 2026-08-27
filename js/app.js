@@ -18,12 +18,12 @@
   };
 
     const bootLines = [
-    "CONTINUANCE NETWORK // TERMINAL AUTH — REQUESTING UPLINK",
+    "CONTINUANCE NETWORK // TERMINAL AUTH // REQUESTING UPLINK",
     "VERIFYING ARCHIVE INTEGRITY ................. OK",
     "DECRYPTING FACTION HOLDINGS REGISTER ......... OK",
     "LOADING CARTOGRAPHIC SURVEY (CUSTOM.GEO) ..... OK",
-    "CROSS-REFERENCING 25 KNOWN ENTITIES .......... OK",
-    "CLEARANCE LEVEL: OBSERVER — READ ONLY",
+    "CROSS REFERENCING 25 KNOWN ENTITIES .......... OK",
+    "CLEARANCE LEVEL: OBSERVER // READ ONLY",
     "",
     "WELCOME TO THE CONTINUANCE SURVEILLANCE ARCHIVE"
   ];
@@ -62,7 +62,14 @@
     zoomControl: true,
     attributionControl: true
   });
-  map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) — Rendered with Leaflet');
+  map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) · Rendered with Leaflet');
+
+  // Country outlines live in their own pane, below the default overlay
+  // pane that circle-marker holdings use, so bringing a selected country
+  // to the front (for its highlight border) can never sit on top of and
+  // block clicks on the site markers inside it.
+  map.createPane('countryPane');
+  map.getPane('countryPane').style.zIndex = 390;
 
   let worldLayer = null;
   let factionLayerGroup = L.layerGroup().addTo(map);
@@ -78,9 +85,12 @@
     el.classList.add('active');
   }
 
-    fetch('geodata/world.json').then(r=>r.json()).then(world=>{
+    (function(){
+    try{
+    const world = window.CONTINUANCE_WORLD;
 
     const makeWorld = (offset)=> L.geoJSON(world, {
+      pane: 'countryPane',
       coordsToLatLng: coords => L.latLng(coords[1], coords[0] + offset),
       style: baseCountryStyle,
       onEachFeature: (feature, layer)=>{
@@ -97,10 +107,11 @@
     ]).addTo(map);
 
     setStatus('cartography-status', 'WORLD SURVEY LOADED');
-  }).catch(err=>{
-    console.error(err);
-    setStatus('cartography-status', 'WORLD SURVEY LOAD FAILED');
-  });
+    }catch(err){
+      console.error(err);
+      setStatus('cartography-status', 'WORLD SURVEY LOAD FAILED');
+    }
+  })();
 
   function baseCountryStyle(){
     return { color:'#4f6f6a', weight:1, fillColor:'#0e2b26', fillOpacity:0.42 };
@@ -131,7 +142,7 @@
     const name = feature.properties.name;
     const iso3 = COUNTRY_MAP[name];
 
-    if(selectedLayer && selectedLayer !== layer) worldLayer.resetStyle(selectedLayer);
+    if(selectedLayer && selectedLayer !== layer) selectedLayer.setStyle(baseCountryStyle());
     selectedLayer = layer;
     layer.setStyle(selectedCountryStyle());
     layer.bringToFront();
@@ -170,7 +181,7 @@
           style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
         }).addTo(regionalCountryLayer);
         document.getElementById('regional-note').textContent =
-          'NO REGIONAL SUBDIVISION SURVEY ON FILE — NATIONAL BOUNDARY ONLY';
+          'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
         if(iso3 === 'RUS'){
           rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
         } else {
@@ -182,14 +193,11 @@
 
     if(!iso3){ finish(null); return; }
     if(geoCache[iso3]){ finish(geoCache[iso3]); return; }
-    fetch('geodata/countries/' + iso3 + '.json').then(r=>{
-      if(!r.ok) throw new Error('not found');
-      return r.json();
-    }).then(gj=>{ geoCache[iso3] = gj; finish(gj); }).catch(()=> finish(null));
+    const gj = (window.CONTINUANCE_COUNTRY_GEO || {})[iso3];
+    if(gj){ geoCache[iso3] = gj; finish(gj); } else { finish(null); }
   }
 
   function locMatchesCountry(loc, countryName){
-    // Word-boundary match so "Niger" doesn't false-match inside "Nigeria", etc.
     const escaped = countryName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp('(^|[^A-Za-z])' + escaped + '($|[^A-Za-z])').test(loc);
   }
@@ -230,7 +238,7 @@
       });
       const m = L.marker([inc.lat, inc.lon], { icon });
       m.bindPopup(
-        '<div class="popup-faction">' + inc.year + ' — HISTORICAL RECORD</div>' +
+        '<div class="popup-faction">' + inc.year + ' · HISTORICAL RECORD</div>' +
         '<div class="popup-title">' + escapeHtml(inc.name) + '</div>' +
         '<div class="popup-coords" style="margin-top:6px; color:#7d8c8f;">' + escapeHtml(inc.note) + '</div>'
       );
@@ -240,7 +248,7 @@
 
   function closeRegionalWindow(){
     document.getElementById('regional-panel').classList.remove('open');
-    if(selectedLayer){ worldLayer.resetStyle(selectedLayer); selectedLayer = null; }
+    if(selectedLayer){ selectedLayer.setStyle(baseCountryStyle()); selectedLayer = null; }
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);
 
@@ -322,7 +330,7 @@
     });
     const marker = L.marker([inc.lat, inc.lon], { icon });
     marker.bindPopup(
-      '<div class="popup-faction">' + inc.year + ' — HISTORICAL RECORD</div>' +
+      '<div class="popup-faction">' + inc.year + ' · HISTORICAL RECORD</div>' +
       '<div class="popup-title">' + escapeHtml(inc.name) + '</div>' +
       '<div class="popup-loc">' + escapeHtml(inc.loc) + '</div>' +
       '<div class="popup-coords" style="margin-top:6px; color:#7d8c8f;">' + escapeHtml(inc.note) + '</div>'
@@ -484,8 +492,8 @@
   });
 
     document.getElementById('legend').innerHTML =
-    '<span class="leg-item"><span class="leg-key">Amber ring</span> — approximate</span>' +
-    '<span class="leg-item"><span class="leg-key">Red dashed</span> — classified</span>';
+    '<span class="leg-item"><span class="leg-key">Amber ring</span> · approximate</span>' +
+    '<span class="leg-item"><span class="leg-key">Red dashed</span> · classified</span>';
 
     function setStatus(id, text){
     const el = document.getElementById(id);
@@ -534,5 +542,243 @@
   }
   hideSidebarBtn.addEventListener('click', ()=> setSidebarHidden(true));
   showSidebarTab.addEventListener('click', ()=> setSidebarHidden(false));
+
+    // Survey Layers panel: collapsed by default on narrow/mobile screens
+  // (handled purely by the CSS media query — no class needed to start hidden),
+  // toggled open with a small tab and closed again with its own close button.
+  const showLayersTab = document.getElementById('show-layers-tab');
+  const layerControlClose = document.getElementById('layer-control-close');
+  if(showLayersTab && layerControlClose){
+    showLayersTab.addEventListener('click', ()=> shellEl.classList.add('layers-open'));
+    layerControlClose.addEventListener('click', ()=> shellEl.classList.remove('layers-open'));
+  }
+
+    // ---- Full survey snapshot export ----
+  // Renders the entire world, every visible faction holding / exclusion zone /
+  // historical incident as a small dot, onto an offscreen canvas and downloads
+  // it as a PNG. This is drawn from the raw geodata + coordinate data directly
+  // (rather than screenshotting the live Leaflet DOM), so it always captures
+  // the whole map at full resolution regardless of current pan/zoom or screen
+  // size, and works the same on mobile as on desktop.
+  function mercY(latDeg){
+    const clamped = Math.max(Math.min(latDeg, 85.05), -85.05);
+    const rad = clamped * Math.PI / 180;
+    return Math.log(Math.tan(Math.PI / 4 + rad / 2)) * 180 / Math.PI;
+  }
+
+  function drawCountryPath(ctx, feature, project){
+    const geom = feature && feature.geometry;
+    if(!geom) return;
+    const polys = geom.type === 'Polygon' ? [geom.coordinates]
+      : geom.type === 'MultiPolygon' ? geom.coordinates : null;
+    if(!polys) return;
+    const path = new Path2D();
+    polys.forEach(rings=>{
+      rings.forEach(ring=>{
+        ring.forEach((coord, i)=>{
+          const p = project(coord[0], coord[1]);
+          if(i === 0) path.moveTo(p[0], p[1]); else path.lineTo(p[0], p[1]);
+        });
+        path.closePath();
+      });
+    });
+    ctx.fill(path, 'evenodd');
+    ctx.stroke(path);
+  }
+
+  function buildSnapshotPoints(){
+    const showFactions = document.getElementById('toggle-factions').checked;
+    const showZones = document.getElementById('toggle-zones').checked;
+    const showIncidents = document.getElementById('toggle-incidents').checked;
+    const holdings = [];
+    if(showFactions){
+      DATA.factions.forEach(faction=>{
+        if(activeFactionFilter && faction !== activeFactionFilter) return;
+        faction.holdings.forEach(h=>{
+          if(h.precision === 'orbital' || h.lat == null || h.lon == null) return;
+          holdings.push({ lat: h.lat, lon: h.lon, color: faction.color });
+        });
+      });
+    }
+    const zones = showZones ? DATA.exclusionZones.filter(z=> z.lat != null && z.lon != null) : [];
+    const incidents = showIncidents ? DATA.incidents.filter(inc=> inc.lat != null && inc.lon != null) : [];
+    return { holdings, zones, incidents };
+  }
+
+  function renderSnapshotCanvas(){
+    const { holdings, zones, incidents } = buildSnapshotPoints();
+
+    let latMin = -60, latMax = 83, lonMin = -180, lonMax = 180;
+    holdings.concat(zones, incidents).forEach(p=>{
+      if(p.lat < latMin) latMin = p.lat - 4;
+      if(p.lat > latMax) latMax = p.lat + 4;
+      if(p.lon < lonMin) lonMin = p.lon - 4;
+      if(p.lon > lonMax) lonMax = p.lon + 4;
+    });
+    latMin = Math.max(latMin, -85.05);
+    latMax = Math.min(latMax, 85.05);
+
+    const yTop = mercY(latMax), yBottom = mercY(latMin);
+    const lonSpan = lonMax - lonMin, ySpan = yTop - yBottom;
+
+    const mapW = 2000;
+    const mapH = Math.round(mapW * (ySpan / lonSpan));
+    const marginX = 44, marginTop = 108, marginBottom = 84;
+    const totalW = mapW + marginX * 2;
+    const totalH = mapH + marginTop + marginBottom;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(totalW * dpr);
+    canvas.height = Math.round(totalH * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    function project(lon, lat){
+      const y = mercY(lat);
+      const px = marginX + (lon - lonMin) / lonSpan * mapW;
+      const py = marginTop + (yTop - y) / ySpan * mapH;
+      return [px, py];
+    }
+
+    ctx.fillStyle = '#0a0d0e';
+    ctx.fillRect(0, 0, totalW, totalH);
+
+    ctx.fillStyle = '#04191a';
+    ctx.fillRect(marginX, marginTop, mapW, mapH);
+
+    ctx.strokeStyle = 'rgba(79,111,106,0.25)';
+    ctx.lineWidth = 1;
+    for(let lon = -180; lon <= 180; lon += 30){
+      if(lon < lonMin || lon > lonMax) continue;
+      const p1 = project(lon, latMax), p2 = project(lon, latMin);
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+    }
+    for(let lat = -60; lat <= 80; lat += 20){
+      if(lat < latMin || lat > latMax) continue;
+      const p1 = project(lonMin, lat), p2 = project(lonMax, lat);
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(marginX, marginTop, mapW, mapH);
+    ctx.clip();
+    ctx.fillStyle = '#0e2b26';
+    ctx.strokeStyle = '#4f6f6a';
+    ctx.lineWidth = 0.9;
+    const world = window.CONTINUANCE_WORLD;
+    if(world && world.features){
+      world.features.forEach(f=> drawCountryPath(ctx, f, project));
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = '#3a4548';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(marginX + 0.5, marginTop + 0.5, mapW - 1, mapH - 1);
+
+    function dot(lon, lat, r, fill, stroke, shape){
+      const p = project(lon, lat);
+      ctx.beginPath();
+      if(shape === 'diamond'){
+        ctx.save();
+        ctx.translate(p[0], p[1]);
+        ctx.rotate(Math.PI / 4);
+        ctx.rect(-r, -r, r * 2, r * 2);
+        ctx.restore();
+      } else {
+        ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      }
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if(stroke){
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+      }
+    }
+
+    holdings.forEach(h=> dot(h.lon, h.lat, 3.6, h.color, '#0b0f10'));
+    zones.forEach(z=> dot(z.lon, z.lat, 4.2, '#e0a53f', '#0b0f10', 'diamond'));
+    incidents.forEach(inc=> dot(inc.lon, inc.lat, 3.4, '#c1453f', '#0b0f10'));
+
+    const stampDate = new Date();
+    const isoStamp = stampDate.toISOString();
+    const displayStamp = isoStamp.slice(0, 16).replace('T', ' ') + ' UTC';
+    const fileStamp = isoStamp.slice(0, 19).replace(/[:T]/g, '-');
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#5fd4c4';
+    ctx.font = '600 26px "IBM Plex Mono", monospace';
+    ctx.fillText('THE CONTINUANCE', marginX, 44);
+    ctx.fillStyle = '#7d8c8f';
+    ctx.font = '400 13px "IBM Plex Mono", monospace';
+    ctx.fillText('GLOBAL SURVEY SNAPSHOT · FACTION HOLDINGS / EXCLUSION ZONES / HISTORICAL INCIDENTS', marginX, 66);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#4d5a5d';
+    ctx.font = '400 12px "IBM Plex Mono", monospace';
+    ctx.fillText('CAPTURED ' + displayStamp, totalW - marginX, 44);
+    ctx.fillText(holdings.length + ' HOLDINGS · ' + zones.length + ' ZONES · ' + incidents.length + ' INCIDENTS', totalW - marginX, 62);
+    ctx.textAlign = 'left';
+
+    const legendY = marginTop + mapH + 30;
+    ctx.font = '400 11.5px "IBM Plex Mono", monospace';
+    let lx = marginX;
+    function legendItem(label, color, shape){
+      if(shape === 'diamond'){
+        ctx.save(); ctx.translate(lx + 5, legendY - 4); ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = color; ctx.fillRect(-4, -4, 8, 8); ctx.restore();
+      } else {
+        ctx.beginPath(); ctx.arc(lx + 5, legendY - 4, 4, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+      }
+      ctx.fillStyle = '#7d8c8f';
+      ctx.fillText(label, lx + 16, legendY);
+      lx += 16 + ctx.measureText(label).width + 26;
+    }
+    legendItem('FACTION HOLDINGS', '#5fd4c4');
+    legendItem('EXCLUSION ZONES', '#e0a53f', 'diamond');
+    legendItem('HISTORICAL INCIDENTS', '#c1453f');
+
+    ctx.fillStyle = '#4d5a5d';
+    ctx.font = '400 10.5px "IBM Plex Mono", monospace';
+    ctx.fillText('Boundaries: Natural Earth / amCharts geodata (free-licensed) · Rendered with Leaflet · Generated by The Continuance Archive', marginX, totalH - 18);
+
+    canvas.toBlob(blob=>{
+      if(!blob){ alert('Snapshot generation failed — please try again.'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'continuance-survey-snapshot-' + fileStamp + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  }
+
+  const captureBtn = document.getElementById('capture-snapshot-btn');
+  if(captureBtn){
+    captureBtn.addEventListener('click', ()=>{
+      captureBtn.disabled = true;
+      const originalLabel = captureBtn.textContent;
+      captureBtn.textContent = 'RENDERING…';
+      requestAnimationFrame(()=>{
+        setTimeout(()=>{
+          try{
+            renderSnapshotCanvas();
+          }catch(err){
+            console.error(err);
+            alert('Could not generate the snapshot: ' + err.message);
+          }finally{
+            captureBtn.disabled = false;
+            captureBtn.textContent = originalLabel;
+          }
+        }, 30);
+      });
+    });
+  }
 
 })();

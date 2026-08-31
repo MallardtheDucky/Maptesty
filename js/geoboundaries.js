@@ -44,6 +44,39 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
     catch(e){ /* quota exceeded or storage disabled -- just skip caching */ }
   }
 
+  function fetchWithTimeout(url, ms){
+    const ctrl = new AbortController();
+    const t = setTimeout(()=> ctrl.abort(), ms);
+    return fetch(url, { signal: ctrl.signal }).finally(()=> clearTimeout(t));
+  }
+
+  // Some geoBoundaries geometry files are served from a host that
+  // doesn't send CORS headers, even though the metadata API does. When
+  // a direct fetch fails for what looks like a CORS/network reason (as
+  // opposed to a real 404), retry once through a public read-only CORS
+  // relay before giving up, so a missing Access-Control-Allow-Origin
+  // header on their end doesn't just break the feature outright.
+  function fetchJSON(url, label){
+    return fetchWithTimeout(url, 25000)
+      .then(r=>{
+        if(!r.ok) throw new Error(label + " HTTP " + r.status);
+        return r.json();
+      })
+      .catch(directErr=>{
+        console.warn('[geoBoundaries] direct fetch failed for', label, url, '-- retrying via CORS relay.', directErr);
+        const proxied = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+        return fetchWithTimeout(proxied, 25000)
+          .then(r=>{
+            if(!r.ok) throw new Error(label + " (via relay) HTTP " + r.status);
+            return r.json();
+          })
+          .catch(relayErr=>{
+            console.error('[geoBoundaries] relay fetch also failed for', label, url, relayErr);
+            throw new Error(label + ' failed both directly and via relay: ' + (directErr && directErr.message) + ' / ' + (relayErr && relayErr.message));
+          });
+      });
+  }
+
   // A single request to the special "ALL" endpoint returns metadata for
   // every ADM level geoBoundaries has on file for this country, so we
   // don't have to probe ADM1..ADM5 one at a time per country.
@@ -56,8 +89,7 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
       return metaCache[iso3];
     }
 
-    metaCache[iso3] = fetch(API_BASE + iso3 + "/ALL/")
-      .then(r=>{ if(!r.ok) throw new Error("geoBoundaries meta " + r.status); return r.json(); })
+    metaCache[iso3] = fetchJSON(API_BASE + iso3 + "/ALL/", "geoBoundaries metadata for " + iso3)
       .then(rows=>{
         const arr = Array.isArray(rows) ? rows : [rows];
         const levels = arr
@@ -87,8 +119,7 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
       return geoCache[key];
     }
 
-    geoCache[key] = fetch(url)
-      .then(r=>{ if(!r.ok) throw new Error("geoBoundaries geometry " + r.status); return r.json(); })
+    geoCache[key] = fetchJSON(url, "geoBoundaries " + level + " geometry for " + iso3)
       .then(gj=>{
         lsSet("geo:" + key, gj); // best-effort; large countries may exceed quota and silently skip
         return gj;

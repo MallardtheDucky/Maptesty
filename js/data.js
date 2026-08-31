@@ -1186,11 +1186,11 @@ window.CONTINUANCE_DATA = {
       "holdings": [
         {
           "name": "The Continuity Spire",
-          "loc": "Nevada, USA",
-          "lat": 39.5,
-          "lon": -117.0,
+          "loc": "Las Vegas, Nevada, USA",
+          "lat": 36.1699,
+          "lon": -115.1398,
           "country": "United States of America",
-          "precision": "approx"
+          "precision": "confirmed"
         },
         {
           "name": "Policy Campus",
@@ -1207,6 +1207,14 @@ window.CONTINUANCE_DATA = {
           "lon": 103.8198,
           "country": "Singapore",
           "precision": "confirmed"
+        },
+        {
+          "name": "Prospect Point",
+          "loc": "Brooklyn, USA",
+          "lat": 40.6782,
+          "lon": -73.9442,
+          "country": "United States of America",
+          "precision": "approx"
         }
       ]
     },

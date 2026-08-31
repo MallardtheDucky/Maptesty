@@ -83,15 +83,14 @@
     el.classList.add('active');
   }
 
-    // Tiny countries (Vatican, Monaco, San Marino, Singapore, etc.) can be
-  // just a handful of pixels wide even when fully zoomed in, which makes
-  // them nearly impossible to click reliably. We give every country under
-  // this bbox-area threshold (in square degrees -- rough but consistent
-  // with the sizing already used elsewhere in this file) a small always-
-  // clickable proxy marker at its centroid, in addition to its real
-  // outline, so opening its regional window doesn't depend on landing a
-  // pixel-perfect click on a sliver of a shape.
-  const ENCLAVE_AREA_THRESHOLD = 0.3;
+    // NOTE: this used to add a small always-clickable circle-marker proxy
+  // at the centroid of every tiny country (Vatican, Monaco, San Marino,
+  // Singapore, etc.), since those can be just a few pixels wide even at
+  // full zoom. Disabled -- it was cluttering island chains (Lesser
+  // Antilles etc.) with a string of teal dots. Real country outlines are
+  // still clickable as before; this threshold is kept at 0 so the block
+  // below never fires, rather than deleting the (still-functional) code.
+  const ENCLAVE_AREA_THRESHOLD = 0;
   let enclaveLayerGroup = L.layerGroup().addTo(map);
   map.createPane('enclavePane');
   map.getPane('enclavePane').style.zIndex = 395; // above countryPane(390), below the default overlayPane(400) faction/zone/incident markers

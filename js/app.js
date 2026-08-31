@@ -83,15 +83,23 @@
     el.classList.add('active');
   }
 
-    // NOTE: this used to add a small always-clickable circle-marker proxy
-  // at the centroid of every tiny country (Vatican, Monaco, San Marino,
-  // Singapore, etc.), since those can be just a few pixels wide even at
-  // full zoom. Disabled -- it was cluttering island chains (Lesser
-  // Antilles etc.) with a string of teal dots. Real country outlines are
-  // still clickable as before; this threshold is kept at 0 so the block
-  // below never fires, rather than deleting the (still-functional) code.
-  const ENCLAVE_AREA_THRESHOLD = 0;
-  let enclaveLayerGroup = L.layerGroup().addTo(map);
+    // Tiny countries (Vatican, Monaco, San Marino, Singapore, etc.) can be
+  // just a handful of pixels wide even when fully zoomed in, which makes
+  // them nearly impossible to click reliably. We give every country under
+  // this bbox-area threshold (in square degrees -- rough but consistent
+  // with the sizing already used elsewhere in this file) a small always-
+  // clickable proxy marker at its centroid, in addition to its real
+  // outline, so opening its regional window doesn't depend on landing a
+  // pixel-perfect click on a sliver of a shape.
+  //
+  // This ends up flagging every small island nation too (Lesser Antilles
+  // etc.), which reads as visual clutter at the world view, so the layer
+  // is built as usual but kept OFF the map by default -- it's just not
+  // added via .addTo() here. It's toggled on/off via the "Small-Island
+  // Markers" legend checkbox instead, same pattern as the faction/zone/
+  // incident layers below.
+  const ENCLAVE_AREA_THRESHOLD = 0.3;
+  let enclaveLayerGroup = L.layerGroup(); // intentionally not added to map yet
   map.createPane('enclavePane');
   map.getPane('enclavePane').style.zIndex = 395; // above countryPane(390), below the default overlayPane(400) faction/zone/incident markers
 
@@ -690,6 +698,12 @@
   document.getElementById('toggle-incidents').addEventListener('change', e=>{
     if(e.target.checked) map.addLayer(incidentLayerGroup); else map.removeLayer(incidentLayerGroup);
   });
+  const enclaveToggleEl = document.getElementById('toggle-enclaves');
+  if(enclaveToggleEl){
+    enclaveToggleEl.addEventListener('change', e=>{
+      if(e.target.checked) map.addLayer(enclaveLayerGroup); else map.removeLayer(enclaveLayerGroup);
+    });
+  }
 
     document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{

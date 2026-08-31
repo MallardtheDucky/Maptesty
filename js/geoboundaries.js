@@ -33,6 +33,21 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
     return ISO_OVERRIDE[name] || null;
   }
 
+  // geoBoundaries' metadata API hands back geometry URLs shaped like
+  // https://github.com/<org>/<repo>/raw/<ref>/<path>. That "raw" path on
+  // github.com is a redirector: it 302s to raw.githubusercontent.com, but
+  // the redirect response itself doesn't carry a valid
+  // Access-Control-Allow-Origin header, so a cross-origin fetch() dies on
+  // the hop before ever reaching the actual file. raw.githubusercontent.com
+  // serves the same bytes directly, with correct CORS headers, so rewrite
+  // to that host up front and skip the broken redirect entirely.
+  function normalizeGeoUrl(url){
+    if(!url) return url;
+    const m = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/(.+)$/.exec(url);
+    if(m) return "https://raw.githubusercontent.com/" + m[1] + "/" + m[2] + "/" + m[3];
+    return url;
+  }
+
   function lsGet(key){
     try{
       const raw = localStorage.getItem(LS_PREFIX + key);
@@ -50,12 +65,23 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
     return fetch(url, { signal: ctrl.signal }).finally(()=> clearTimeout(t));
   }
 
-  // Some geoBoundaries geometry files are served from a host that
-  // doesn't send CORS headers, even though the metadata API does. When
-  // a direct fetch fails for what looks like a CORS/network reason (as
-  // opposed to a real 404), retry once through a public read-only CORS
-  // relay before giving up, so a missing Access-Control-Allow-Origin
-  // header on their end doesn't just break the feature outright.
+  // Converts a raw.githubusercontent.com URL into the equivalent jsDelivr
+  // GitHub-mirror URL. jsDelivr is a CDN, not a raw-content passthrough,
+  // so it reliably sends correct CORS headers -- unlike some read-only
+  // relay services, which come and go. Used as a last-resort fallback.
+  function toJsDelivr(url){
+    const m = /^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/.exec(url);
+    if(!m) return null;
+    return "https://cdn.jsdelivr.net/gh/" + m[1] + "/" + m[2] + "@" + m[3] + "/" + m[4];
+  }
+
+  // A handful of geoBoundaries geometry/metadata hosts are inconsistent
+  // about sending CORS headers. When a direct fetch fails for what looks
+  // like a CORS/network reason (as opposed to a real 404), retry once
+  // through the jsDelivr GitHub CDN mirror (if the URL is a GitHub raw
+  // URL) and, failing that, through a generic public CORS relay, so a
+  // missing Access-Control-Allow-Origin header on their end doesn't just
+  // break the feature outright.
   function fetchJSON(url, label){
     return fetchWithTimeout(url, 25000)
       .then(r=>{
@@ -63,17 +89,25 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
         return r.json();
       })
       .catch(directErr=>{
-        console.warn('[geoBoundaries] direct fetch failed for', label, url, '-- retrying via CORS relay.', directErr);
-        const proxied = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-        return fetchWithTimeout(proxied, 25000)
-          .then(r=>{
-            if(!r.ok) throw new Error(label + " (via relay) HTTP " + r.status);
-            return r.json();
-          })
-          .catch(relayErr=>{
-            console.error('[geoBoundaries] relay fetch also failed for', label, url, relayErr);
-            throw new Error(label + ' failed both directly and via relay: ' + (directErr && directErr.message) + ' / ' + (relayErr && relayErr.message));
-          });
+        console.warn('[geoBoundaries] direct fetch failed for', label, url, '-- trying fallbacks.', directErr);
+        const jsdelivr = toJsDelivr(url);
+        const attempts = [];
+        if(jsdelivr) attempts.push(jsdelivr);
+        attempts.push("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
+
+        let chain = Promise.reject(directErr);
+        attempts.forEach(candidate=>{
+          chain = chain.catch(()=>
+            fetchWithTimeout(candidate, 25000).then(r=>{
+              if(!r.ok) throw new Error(label + " (via " + candidate + ") HTTP " + r.status);
+              return r.json();
+            })
+          );
+        });
+        return chain.catch(finalErr=>{
+          console.error('[geoBoundaries] all fallbacks failed for', label, url, finalErr);
+          throw new Error(label + ' failed via direct fetch and all fallbacks: ' + (finalErr && finalErr.message));
+        });
       });
   }
 
@@ -98,7 +132,7 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
             level: r.boundaryType,
             label: LEVEL_LABEL[r.boundaryType] || r.boundaryType,
             unitCount: r.admUnitCount || null,
-            url: r.simplifiedGeometryGeoJSON || r.gjDownloadURL
+            url: normalizeGeoUrl(r.simplifiedGeometryGeoJSON || r.gjDownloadURL)
           }))
           .sort((a,b)=> LEVEL_ORDER.indexOf(a.level) - LEVEL_ORDER.indexOf(b.level));
         lsSet("meta:" + iso3, levels);
@@ -110,6 +144,10 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
   }
 
   function fetchGeometry(iso3, level, url){
+    // Defends against stale localStorage metadata (saved by an older
+    // build of this file) that still holds an un-rewritten github.com/raw
+    // URL -- normalize on every call, not just at fetchLevels() time.
+    url = normalizeGeoUrl(url);
     const key = iso3 + ":" + level;
     if(geoCache[key]) return geoCache[key];
 

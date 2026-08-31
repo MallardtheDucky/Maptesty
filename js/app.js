@@ -139,7 +139,7 @@
 
   const GB = window.CONTINUANCE_GEOBOUNDARIES;
 
-  function drawSubdivisions(rmap, iso3, geojsonOrNull, feature, name){
+  function drawSubdivisions(rmap, iso3, geojsonOrNull, feature, name, noteOverride){
     regionalCountryLayer.clearLayers();
     if(geojsonOrNull){
       const sub = L.geoJSON(geojsonOrNull, {
@@ -163,7 +163,7 @@
         style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
       }).addTo(regionalCountryLayer);
       document.getElementById('regional-note').textContent =
-        'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
+        noteOverride || 'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
       if(iso3 === 'RUS'){
         rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
       } else {
@@ -219,10 +219,10 @@
       document.getElementById('regional-note').textContent = 'LOADING ' + lv.label + ' SURVEY…';
       GB.fetchGeometry(iso3, lv.level, lv.url)
         .then(gj=> drawSubdivisions(rmap, iso3, gj, feature, name))
-        .catch(()=>{
-          document.getElementById('regional-note').textContent =
-            lv.label + ' SURVEY UNAVAILABLE // NETWORK OR SOURCE ERROR';
-          drawSubdivisions(rmap, iso3, null, feature, name);
+        .catch(err=>{
+          console.error('geoBoundaries geometry fetch failed for', iso3, lv.level, lv.url, err);
+          drawSubdivisions(rmap, iso3, null, feature, name,
+            lv.label + ' SURVEY FAILED TO LOAD // SEE BROWSER CONSOLE FOR DETAILS');
         });
     }
 

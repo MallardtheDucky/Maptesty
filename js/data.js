@@ -5,35 +5,43 @@ window.CONTINUANCE_DATA = {
       "tag": "CONC",
       "holdings": [
         {
-          "name": "Mount Baptiste",
-          "loc": "Montana, United States",
+          "name": "Site-00 \"Baptiste\"",
+          "loc": "Mount Baptiste, Montana, United States",
           "lat": 47.05,
           "lon": -110.45,
           "country": "United States of America",
           "precision": "approx"
         },
         {
-          "name": "Fort Resolution",
-          "loc": "Northwest Territories, Canada",
+          "name": "Site-01 \"Resolution\"",
+          "loc": "Fort Resolution, Northwest Territories, Canada",
           "lat": 61.1667,
           "lon": -113.6667,
           "country": "Canada",
           "precision": "confirmed"
         },
         {
-          "name": "Derry",
-          "loc": "Northern Ireland, United Kingdom",
+          "name": "Site-02 \"Derry\"",
+          "loc": "Derry, Northern Ireland, United Kingdom",
           "lat": 54.9966,
           "lon": -7.3086,
           "country": "United Kingdom",
           "precision": "confirmed"
         },
         {
-          "name": "Beaver Mountain",
-          "loc": "Oklahoma, United States",
+          "name": "Site-03 \"Beaver\"",
+          "loc": "Beaver Mountain, Oklahoma, United States",
           "lat": 35.55,
           "lon": -97.55,
           "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Site-04 \"Uz\"",
+          "loc": "Valea Uzului, Harghita County, Romania",
+          "lat": 46.233,
+          "lon": 26.283,
+          "country": "Romania",
           "precision": "approx"
         }
       ]
@@ -141,6 +149,38 @@ window.CONTINUANCE_DATA = {
           "lon": 107.6667,
           "country": "Vietnam",
           "precision": "confirmed"
+        },
+        {
+          "name": "Phnom Penh",
+          "loc": "Cambodia",
+          "lat": 11.5564,
+          "lon": 104.9282,
+          "country": "Cambodia",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Vientiane",
+          "loc": "Laos",
+          "lat": 17.9757,
+          "lon": 102.6331,
+          "country": "Laos",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Hanoi",
+          "loc": "Vietnam",
+          "lat": 21.0278,
+          "lon": 105.8342,
+          "country": "Vietnam",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Bangkok",
+          "loc": "Thailand",
+          "lat": 13.7563,
+          "lon": 100.5018,
+          "country": "Thailand",
+          "precision": "confirmed"
         }
       ]
     },
@@ -215,6 +255,22 @@ window.CONTINUANCE_DATA = {
           "loc": "Shanghai, PRC",
           "lat": 31.2304,
           "lon": 121.4737,
+          "country": "China",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Kashmir Exclusion Zone",
+          "loc": "Pakistan",
+          "lat": 34.22,
+          "lon": 76.28,
+          "country": "Pakistan",
+          "precision": "approx"
+        },
+        {
+          "name": "Qinghai Lake",
+          "loc": "Qinghai, People's Republic of China",
+          "lat": 36.9,
+          "lon": 100.15,
           "country": "China",
           "precision": "confirmed"
         }
@@ -459,6 +515,30 @@ window.CONTINUANCE_DATA = {
           "lon": 5.7245,
           "country": "France",
           "precision": "confirmed"
+        },
+        {
+          "name": "Björkborn Industrial Area",
+          "loc": "Karlskoga, Sweden",
+          "lat": 59.3266,
+          "lon": 14.5231,
+          "country": "Sweden",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Lorient",
+          "loc": "Brittany, France",
+          "lat": 47.7482,
+          "lon": -3.3702,
+          "country": "France",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Trieste",
+          "loc": "Italy",
+          "lat": 45.6495,
+          "lon": 13.7768,
+          "country": "Italy",
+          "precision": "confirmed"
         }
       ]
     },
@@ -573,6 +653,30 @@ window.CONTINUANCE_DATA = {
           "lon": 69.35,
           "country": "France",
           "precision": "confirmed"
+        },
+        {
+          "name": "Centre-Val de Loire",
+          "loc": "France",
+          "lat": 47.7515,
+          "lon": 1.6751,
+          "country": "France",
+          "precision": "approx"
+        },
+        {
+          "name": "Marseille",
+          "loc": "Garisson, France",
+          "lat": 43.2965,
+          "lon": 5.3698,
+          "country": "France",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Nouvelle-Aquitaine",
+          "loc": "National Anomalous Logistics Hub, France",
+          "lat": 45.7089,
+          "lon": 0.1746,
+          "country": "France",
+          "precision": "approx"
         }
       ]
     },
@@ -767,44 +871,6 @@ window.CONTINUANCE_DATA = {
       ]
     },
     {
-      "name": "Cerberus Defense Initiative",
-      "tag": "CDI",
-      "holdings": [
-        {
-          "name": "French Alps Site",
-          "loc": "France",
-          "lat": 45.2,
-          "lon": 6.5,
-          "country": "France",
-          "precision": "approx"
-        },
-        {
-          "name": "Luxembourg Site",
-          "loc": "Luxembourg",
-          "lat": 49.8153,
-          "lon": 6.1296,
-          "country": "Luxembourg",
-          "precision": "approx"
-        },
-        {
-          "name": "Decommissioned Oil Platform",
-          "loc": "North Atlantic",
-          "lat": 58.0,
-          "lon": -20.0,
-          "country": "international",
-          "precision": "approx"
-        },
-        {
-          "name": "Westchester County Facility",
-          "loc": "New York, United States",
-          "lat": 41.122,
-          "lon": -73.7949,
-          "country": "United States of America",
-          "precision": "confirmed"
-        }
-      ]
-    },
-    {
       "name": "Khaydaguay Industries",
       "tag": "KHIN",
       "holdings": [
@@ -915,6 +981,270 @@ window.CONTINUANCE_DATA = {
           "lon": 13.2894,
           "country": "Angola",
           "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "The Wolfpack",
+      "tag": "WLFP",
+      "holdings": [
+        {
+          "name": "Vorkuta",
+          "loc": "Komi Republic, Russia",
+          "lat": 67.4998,
+          "lon": 64.0004,
+          "country": "Russia",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Duga Radar Array",
+          "loc": "Chernobyl Exclusion Zone, Ukraine",
+          "lat": 51.3068,
+          "lon": 30.0742,
+          "country": "Ukraine",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Chernobyl Reactor Building",
+          "loc": "Chernobyl Exclusion Zone, Ukraine",
+          "lat": 51.3898,
+          "lon": 30.0977,
+          "country": "Ukraine",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Moscow Facility",
+          "loc": "Somewhere Moscow",
+          "lat": 55.7558,
+          "lon": 37.6173,
+          "country": "Russia",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "Tynáaj Guild Dynamics",
+      "tag": "TYGD",
+      "holdings": [
+        {
+          "name": "Salt Lake City",
+          "loc": "Utah, United States",
+          "lat": 40.7608,
+          "lon": -111.891,
+          "country": "United States of America",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Alpine Rift Staging Facility",
+          "loc": "Yukon Territory, Canada",
+          "lat": 63.5,
+          "lon": -135.5,
+          "country": "Canada",
+          "precision": "approx"
+        },
+        {
+          "name": "Biological Refinery & Processing Facility",
+          "loc": "Rotterdam, Netherlands",
+          "lat": 51.9225,
+          "lon": 4.4792,
+          "country": "Netherlands",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Exotic Metallurgy & Gear Proving Grounds",
+          "loc": "Incheon, South Korea",
+          "lat": 37.4563,
+          "lon": 126.7052,
+          "country": "South Korea",
+          "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "Laplace Scientific Centre",
+      "tag": "LAPL",
+      "holdings": [
+        {
+          "name": "Laplace Scientific Computing Centre",
+          "loc": "London, United Kingdom",
+          "lat": 51.5072,
+          "lon": -0.1276,
+          "country": "United Kingdom",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Institutum Lorentz",
+          "loc": "Oxford, United Kingdom",
+          "lat": 51.752,
+          "lon": -1.2577,
+          "country": "United Kingdom",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Zeno Arms Academy",
+          "loc": "Isle of Man",
+          "lat": 54.2361,
+          "lon": -4.5481,
+          "country": "United Kingdom",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "Blackwell & Beckett Drilling & Energy Solutions Inc.",
+      "tag": "BBDE",
+      "holdings": [
+        {
+          "name": "Budapest",
+          "loc": "Hungary, Carpathian Basin",
+          "lat": 47.4979,
+          "lon": 19.0402,
+          "country": "Hungary",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Wolin Extraction, Refining and Laboratory Super-Complex",
+          "loc": "Flamel Chemical Labs Site 02, Poland",
+          "lat": 53.858,
+          "lon": 14.6087,
+          "country": "Poland",
+          "precision": "approx"
+        },
+        {
+          "name": "Hawana Refinery Complex",
+          "loc": "Flamel Chemical Labs Site 03, Cuba",
+          "lat": 23.1136,
+          "lon": -82.3666,
+          "country": "Cuba",
+          "precision": "approx"
+        },
+        {
+          "name": "Gulf of Mexico Kobold Industrial Mining Self-Propelled Anomalous Extractor Base",
+          "loc": "Docking in Veracruz / Siren Husar 07, Mexico",
+          "lat": 19.1738,
+          "lon": -96.1342,
+          "country": "Mexico",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "The Akashic Order",
+      "tag": "AKAS",
+      "holdings": [
+        {
+          "name": "London",
+          "loc": "England, United Kingdom",
+          "lat": 51.5072,
+          "lon": -0.1276,
+          "country": "United Kingdom",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Cardiff University of Thaumaturgy",
+          "loc": "The Archive of Thaumaturgy, Cardiff, Wales, United Kingdom",
+          "lat": 51.4816,
+          "lon": -3.1791,
+          "country": "United Kingdom",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Archive of War",
+          "loc": "Southampton, England, United Kingdom",
+          "lat": 50.9097,
+          "lon": -1.4044,
+          "country": "United Kingdom",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Archive of Memory",
+          "loc": "Little Cumbraw Island, Scotland, United Kingdom",
+          "lat": 55.75,
+          "lon": -5.0,
+          "country": "United Kingdom",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "Covalent Computing Organization",
+      "tag": "CVCO",
+      "holdings": [
+        {
+          "name": "Ilmenau",
+          "loc": "Thuringia, Germany",
+          "lat": 50.6839,
+          "lon": 10.9139,
+          "country": "Germany",
+          "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "Providence Continuity Corporation",
+      "tag": "PVCC",
+      "holdings": [
+        {
+          "name": "The Continuity Spire",
+          "loc": "Nevada, USA",
+          "lat": 39.5,
+          "lon": -117.0,
+          "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Policy Campus",
+          "loc": "Geneva",
+          "lat": 46.2044,
+          "lon": 6.1432,
+          "country": "Switzerland",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Meridian Hub",
+          "loc": "Singapore",
+          "lat": 1.3521,
+          "lon": 103.8198,
+          "country": "Singapore",
+          "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "The Order of the Sacred Annunciation",
+      "tag": "OSA",
+      "holdings": [
+        {
+          "name": "St. Mary's Cathedral",
+          "loc": "Rome, Italy",
+          "lat": 41.9028,
+          "lon": 12.4964,
+          "country": "Italy",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Ancona Cordon",
+          "loc": "Ancona, Italy",
+          "lat": 43.6158,
+          "lon": 13.5189,
+          "country": "Italy",
+          "precision": "confirmed"
+        },
+        {
+          "name": "The Chaldean Citadel",
+          "loc": "North Baghdad, Iraq",
+          "lat": 33.3906,
+          "lon": 44.4009,
+          "country": "Iraq",
+          "precision": "approx"
+        },
+        {
+          "name": "St. Isidore's Cathedral",
+          "loc": "Somewhere Northern Congo",
+          "lat": 2.5,
+          "lon": 20.5,
+          "country": "Democratic Republic of the Congo",
+          "precision": "approx"
         }
       ]
     }

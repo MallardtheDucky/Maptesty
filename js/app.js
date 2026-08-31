@@ -60,9 +60,8 @@
     maxZoom: 9,
     worldCopyJump: true,
     zoomControl: true,
-    attributionControl: true
+    attributionControl: false
   });
-  map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed); subdivisions via geoBoundaries (CC BY 4.0) · Rendered with Leaflet');
 
   // Country outlines live in their own pane, below the default overlay
   // pane that circle-marker holdings use, so bringing a selected country
@@ -443,6 +442,13 @@
   // before paying that cost, rather than silently locking up the tab.
   const HEAVY_LEVEL_THRESHOLD = 10000;
 
+  // Above this many divisions in a single level, the data set is dropped
+  // entirely rather than merely flagged -- e.g. India's village-level ADM
+  // boundaries (~650,000 units) are too heavy to be usable at all, so
+  // that level is excluded from the switcher outright instead of just
+  // getting the "heavy" warning treatment.
+  const EXCLUDE_LEVEL_THRESHOLD = 100000;
+
   // Renders the row of level buttons (Province / District / Municipality...)
   // once we know which ADM levels geoBoundaries actually has on file for
   // this country. Picking one directly always resets any drill-down and
@@ -518,7 +524,7 @@
     GB.fetchLevels(iso3).then(levels=>{
       // ADM0 is just the national outline we already have; only offer
       // levels below it as subdivision options.
-      const subLevels = levels.filter(l=> l.level !== 'ADM0');
+      const subLevels = levels.filter(l=> l.level !== 'ADM0' && !(l.unitCount && l.unitCount > EXCLUDE_LEVEL_THRESHOLD));
       if(!subLevels.length){ offlineFallback(); return; }
       currentLevels = subLevels;
       renderLevelSwitcher(subLevels, 0);

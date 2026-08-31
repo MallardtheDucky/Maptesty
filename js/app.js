@@ -139,56 +139,236 @@
 
   const GB = window.CONTINUANCE_GEOBOUNDARIES;
 
-  function drawSubdivisions(rmap, iso3, geojsonOrNull, feature, name, noteOverride){
+  // ---- Point-in-polygon helpers (used to work out which lower-level
+  // divisions -- e.g. districts -- fall inside a higher-level one a user
+  // just clicked -- e.g. a state -- so drilling down can filter to just
+  // that area). Ray-casting over every ring (outer + holes) of a
+  // Polygon/MultiPolygon; running the crossing count over all rings
+  // combined naturally handles holes via the even-odd rule, so no special
+  // casing is needed for enclaves. ----
+  function flattenRings(geom){
+    if(!geom) return [];
+    if(geom.type === 'Polygon') return geom.coordinates;
+    if(geom.type === 'MultiPolygon') return geom.coordinates.reduce((a,p)=> a.concat(p), []);
+    return [];
+  }
+  function pointInRings(lon, lat, rings){
+    let inside = false;
+    rings.forEach(ring=>{
+      for(let i=0, j=ring.length-1; i<ring.length; j=i++){
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const crosses = ((yi > lat) !== (yj > lat)) &&
+          (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+        if(crosses) inside = !inside;
+      }
+    });
+    return inside;
+  }
+  // Approximate centroid from a feature's largest outer ring -- good
+  // enough to test "is this district inside that state" without pulling
+  // in a full geometry library.
+  function featureCentroid(feature){
+    const geom = feature && feature.geometry;
+    if(!geom) return null;
+    let ring = null;
+    if(geom.type === 'Polygon') ring = geom.coordinates[0];
+    else if(geom.type === 'MultiPolygon'){
+      let bestLen = -1;
+      geom.coordinates.forEach(poly=>{
+        if(poly[0] && poly[0].length > bestLen){ bestLen = poly[0].length; ring = poly[0]; }
+      });
+    }
+    if(!ring || !ring.length) return null;
+    let sx = 0, sy = 0;
+    ring.forEach(c=>{ sx += c[0]; sy += c[1]; });
+    return [sx / ring.length, sy / ring.length]; // [lon, lat]
+  }
+  function featureWithinParent(childFeature, parentFeature){
+    const c = featureCentroid(childFeature);
+    if(!c) return false;
+    return pointInRings(c[0], c[1], flattenRings(parentFeature.geometry));
+  }
+  // Rough bounding-box area, used only to decide paint order (see
+  // renderFeatureSet) -- doesn't need to be a real-world area unit.
+  function bboxArea(feature){
+    const geom = feature && feature.geometry;
+    if(!geom) return 0;
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    const scan = ring => ring.forEach(c=>{
+      if(c[0]<minX) minX=c[0]; if(c[0]>maxX) maxX=c[0];
+      if(c[1]<minY) minY=c[1]; if(c[1]>maxY) maxY=c[1];
+    });
+    if(geom.type === 'Polygon') geom.coordinates.forEach(scan);
+    else if(geom.type === 'MultiPolygon') geom.coordinates.forEach(poly=> poly.forEach(scan));
+    else return 0;
+    return Math.max(0, maxX-minX) * Math.max(0, maxY-minY);
+  }
+  function subdivName(f){
+    return (f.properties && (f.properties.shapeName || f.properties.name)) || 'Unknown Division';
+  }
+
+  // ---- Regional-window state: which country, which ADM levels it has,
+  // and the drill path the user has clicked into (country -> state ->
+  // district -> ...). ----
+  let currentIso3 = null;
+  let currentCountryFeature = null;
+  let currentCountryName = null;
+  let currentLevels = [];   // subdivision levels available for this country, ADM1..ADM5
+  let viewStack = [];       // [{ levelIndex, parentFeature, label }] -- breadcrumb trail
+
+  function renderBreadcrumbs(){
+    const el = document.getElementById('regional-breadcrumbs');
+    if(!el) return;
+    el.innerHTML = '';
+    viewStack.forEach((v, i)=>{
+      if(i > 0){
+        const sep = document.createElement('span');
+        sep.className = 'crumb-sep';
+        sep.textContent = '›';
+        el.appendChild(sep);
+      }
+      const span = document.createElement('span');
+      const isCurrent = i === viewStack.length - 1;
+      span.className = 'crumb' + (isCurrent ? ' current' : '');
+      span.textContent = v.label;
+      if(!isCurrent){
+        span.addEventListener('click', ()=>{
+          viewStack = viewStack.slice(0, i+1);
+          renderBreadcrumbs();
+          showLevel(v.levelIndex, v.parentFeature);
+        });
+      }
+      el.appendChild(span);
+    });
+  }
+
+  // Renders one set of already-fetched-and-optionally-filtered features
+  // (a state's districts, a country's states, etc) onto the regional map,
+  // wiring up hover, tooltip, and -- when a deeper ADM level exists --
+  // click-to-drill.
+  function renderFeatureSet(features, levelIndex, parentFeature){
     regionalCountryLayer.clearLayers();
-    if(geojsonOrNull){
-      const sub = L.geoJSON(geojsonOrNull, {
-        style: ()=> ({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }),
-        onEachFeature: (f, l)=>{
-          const nm = (f.properties && (f.properties.shapeName || f.properties.name)) || 'Unknown Division';
-          l.bindTooltip(nm, { className:'subdiv-label', sticky:true, direction:'top' });
-          l.on('mouseover', ()=> l.setStyle({ color:'#8fe8da', weight:1.8, fillColor:'#1c3d38', fillOpacity:0.7 }));
-          l.on('mouseout', ()=> l.setStyle({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }));
+    const hasDeeper = levelIndex + 1 < currentLevels.length;
+
+    // Faint outline of the parent area we've drilled into, for context --
+    // not interactive, so it never steals clicks/hover from its children.
+    if(parentFeature){
+      L.geoJSON(parentFeature, {
+        style: ()=> ({ color:'#e0a53f', weight:1.6, fillOpacity:0, dashArray:'4,3' }),
+        interactive: false
+      }).addTo(regionalCountryLayer);
+    }
+
+    // Sort largest-first, then add/bringToFront in that order, so the
+    // smallest shapes end up painted last (topmost). This matters for
+    // enclaves -- e.g. a capital city that's its own division fully
+    // surrounded by a much larger province -- which would otherwise be
+    // visually and functionally swallowed by the bigger shape drawn over
+    // it, with no way to hover or click the smaller one underneath.
+    const ordered = features.slice().sort((a,b)=> bboxArea(b) - bboxArea(a));
+
+    const sub = L.geoJSON({ type:'FeatureCollection', features: ordered }, {
+      style: ()=> ({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }),
+      onEachFeature: (f, l)=>{
+        const nm = subdivName(f);
+        l.bindTooltip(nm, { className:'subdiv-label', sticky:true, direction:'top' });
+        l.on('mouseover', ()=> l.setStyle({ color:'#8fe8da', weight:1.8, fillColor:'#1c3d38', fillOpacity:0.7 }));
+        l.on('mouseout', ()=> l.setStyle({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }));
+        if(hasDeeper){
+          l.on('add', ()=>{ const el = l.getElement && l.getElement(); if(el) el.style.cursor = 'pointer'; });
+          l.on('click', ()=>{
+            viewStack.push({ levelIndex: levelIndex+1, parentFeature: f, label: nm });
+            renderBreadcrumbs();
+            showLevel(levelIndex+1, f);
+          });
         }
-      }).addTo(regionalCountryLayer);
-      document.getElementById('regional-note').textContent =
-        sub.getLayers().length + ' INTERNAL DIVISION' + (sub.getLayers().length===1?'':'S') + ' ON RECORD';
-      if(iso3 === 'RUS'){
-        rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
-      } else {
-        rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
       }
+    }).addTo(regionalCountryLayer);
+    sub.eachLayer(l=> l.bringToFront && l.bringToFront());
+
+    const lv = currentLevels[levelIndex];
+    document.getElementById('regional-note').textContent =
+      sub.getLayers().length + (sub.getLayers().length===1 ? ' DIVISION' : ' DIVISIONS') +
+      ' ON RECORD' + (hasDeeper ? ' // CLICK ONE TO VIEW ITS ' + (currentLevels[levelIndex+1].label || 'SUBDIVISIONS') : '');
+
+    Array.from(document.getElementById('regional-levels').children).forEach((c,i)=> c.classList.toggle('active', i===levelIndex));
+
+    const rmap = regionalMap;
+    if(parentFeature){
+      rmap.flyToBounds(L.geoJSON(parentFeature).getBounds(), { padding:[24,24], duration:0.4 });
+    } else if(currentIso3 === 'RUS'){
+      rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
+    } else if(sub.getLayers().length){
+      rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
+    }
+    plotRegionalMarkers(currentCountryName);
+  }
+
+  // Fetches (or reuses the already-cached) geometry for a level, filters
+  // it down to whatever lies inside parentFeature (if we've drilled in),
+  // and renders it.
+  function showLevel(levelIndex, parentFeature){
+    const lv = currentLevels[levelIndex];
+    if(!lv) return;
+    document.getElementById('regional-note').textContent = 'LOADING ' + lv.label + ' SURVEY…';
+    GB.fetchGeometry(currentIso3, lv.level, lv.url).then(gj=>{
+      let features = gj.features || [];
+      if(parentFeature){
+        const filtered = features.filter(f=> featureWithinParent(f, parentFeature));
+        // If the containment test comes up empty (e.g. a sliver/coastal
+        // parent shape our centroid approximation misses), fall back to
+        // showing everything rather than an empty, confusing map.
+        if(filtered.length) features = filtered;
+      }
+      renderFeatureSet(features, levelIndex, parentFeature);
+    }).catch(err=>{
+      console.error('geoBoundaries geometry fetch failed for', currentIso3, lv.level, lv.url, err);
+      document.getElementById('regional-note').textContent =
+        lv.label + ' SURVEY FAILED TO LOAD // SEE BROWSER CONSOLE FOR DETAILS';
+    });
+  }
+
+  function drawOfflineOrNoData(rmap, iso3, geojsonOrNull, feature, name, noteOverride){
+    regionalCountryLayer.clearLayers();
+    document.getElementById('regional-breadcrumbs').innerHTML = '';
+    const layer = geojsonOrNull
+      ? L.geoJSON(geojsonOrNull, { style: ()=> ({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }),
+          onEachFeature: (f,l)=>{
+            const nm = subdivName(f);
+            l.bindTooltip(nm, { className:'subdiv-label', sticky:true, direction:'top' });
+            l.on('mouseover', ()=> l.setStyle({ color:'#8fe8da', weight:1.8, fillColor:'#1c3d38', fillOpacity:0.7 }));
+            l.on('mouseout', ()=> l.setStyle({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }));
+          } })
+      : L.geoJSON(feature, { style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 }) });
+    layer.addTo(regionalCountryLayer);
+    document.getElementById('regional-note').textContent = geojsonOrNull
+      ? layer.getLayers().length + ' INTERNAL DIVISION' + (layer.getLayers().length===1?'':'S') + ' ON RECORD'
+      : (noteOverride || 'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY');
+    if(iso3 === 'RUS'){
+      rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
     } else {
-      const outline = L.geoJSON(feature, {
-        style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
-      }).addTo(regionalCountryLayer);
-      document.getElementById('regional-note').textContent =
-        noteOverride || 'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
-      if(iso3 === 'RUS'){
-        rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
-      } else {
-        rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
-      }
+      rmap.flyToBounds(layer.getBounds(), { padding:[20,20], duration:0.4 });
     }
     plotRegionalMarkers(name);
   }
 
   // Renders the row of level buttons (Province / District / Municipality...)
   // once we know which ADM levels geoBoundaries actually has on file for
-  // this country, and wires each one up to fetch + draw on click.
-  function renderLevelSwitcher(rmap, iso3, feature, name, levels, activeLevel, onPick){
+  // this country. Picking one directly always resets any drill-down and
+  // jumps straight to that level for the whole country.
+  function renderLevelSwitcher(levels, activeIndex){
     const box = document.getElementById('regional-levels');
     box.innerHTML = '';
     if(!levels || !levels.length) return;
-    levels.forEach(lv=>{
+    levels.forEach((lv, idx)=>{
       const btn = document.createElement('button');
-      btn.className = 'lvl-btn' + (lv.level === activeLevel ? ' active' : '');
+      btn.className = 'lvl-btn' + (idx === activeIndex ? ' active' : '');
       btn.textContent = lv.label + (lv.unitCount ? ' (' + lv.unitCount + ')' : '');
       btn.addEventListener('click', ()=>{
-        if(btn.classList.contains('active')) return;
-        Array.from(box.children).forEach(c=> c.classList.remove('active'));
-        btn.classList.add('active');
-        onPick(lv);
+        viewStack = [{ levelIndex: idx, parentFeature: null, label: currentCountryName }];
+        renderBreadcrumbs();
+        showLevel(idx, null);
       });
       box.appendChild(btn);
     });
@@ -207,6 +387,13 @@
     document.getElementById('regional-title').textContent = name.toUpperCase();
     document.getElementById('regional-panel').classList.add('open');
     document.getElementById('regional-levels').innerHTML = '';
+    document.getElementById('regional-breadcrumbs').innerHTML = '';
+
+    currentIso3 = iso3;
+    currentCountryFeature = feature;
+    currentCountryName = name;
+    currentLevels = [];
+    viewStack = [];
 
     const rmap = ensureRegionalMap();
     regionalCountryLayer.clearLayers();
@@ -215,23 +402,13 @@
 
     setTimeout(()=> rmap.invalidateSize(), 30);
 
-    function loadLevel(lv){
-      document.getElementById('regional-note').textContent = 'LOADING ' + lv.label + ' SURVEY…';
-      GB.fetchGeometry(iso3, lv.level, lv.url)
-        .then(gj=> drawSubdivisions(rmap, iso3, gj, feature, name))
-        .catch(err=>{
-          console.error('geoBoundaries geometry fetch failed for', iso3, lv.level, lv.url, err);
-          drawSubdivisions(rmap, iso3, null, feature, name,
-            lv.label + ' SURVEY FAILED TO LOAD // SEE BROWSER CONSOLE FOR DETAILS');
-        });
-    }
-
     function offlineFallback(){
       // No live geoBoundaries data (no ISO3, offline, or the country isn't
       // tracked) -- fall back to the small locally-bundled ADM1 set for the
-      // curated countries this archive originally shipped with.
+      // curated countries this archive originally shipped with. No
+      // click-to-drill here since there's only ever one level on file.
       const gj = iso3 ? (window.CONTINUANCE_COUNTRY_GEO || {})[iso3] : null;
-      drawSubdivisions(rmap, iso3, gj || null, feature, name);
+      drawOfflineOrNoData(rmap, iso3, gj || null, feature, name);
     }
 
     if(!iso3 || !GB){ offlineFallback(); return; }
@@ -241,9 +418,11 @@
       // levels below it as subdivision options.
       const subLevels = levels.filter(l=> l.level !== 'ADM0');
       if(!subLevels.length){ offlineFallback(); return; }
-      const first = subLevels[0];
-      renderLevelSwitcher(rmap, iso3, feature, name, subLevels, first.level, loadLevel);
-      loadLevel(first);
+      currentLevels = subLevels;
+      renderLevelSwitcher(subLevels, 0);
+      viewStack = [{ levelIndex: 0, parentFeature: null, label: name }];
+      renderBreadcrumbs();
+      showLevel(0, null);
     }).catch(()=>{
       offlineFallback();
     });
@@ -301,6 +480,9 @@
   function closeRegionalWindow(){
     document.getElementById('regional-panel').classList.remove('open');
     document.getElementById('regional-levels').innerHTML = '';
+    document.getElementById('regional-breadcrumbs').innerHTML = '';
+    viewStack = [];
+    currentLevels = [];
     if(selectedLayer){ selectedLayer.setStyle(baseCountryStyle()); selectedLayer = null; }
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);

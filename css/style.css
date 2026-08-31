@@ -439,6 +439,17 @@ a{ color: var(--teal); }
 #regional-levels .lvl-btn.active{ color: var(--amber); border-color: var(--amber); }
 #regional-levels .lvl-btn:disabled{ opacity:.45; cursor:default; }
 
+#regional-breadcrumbs{
+  display:flex; flex-wrap:wrap; align-items:center; gap:2px; flex-shrink:0;
+  font-family: var(--font-mono); font-size:10px; letter-spacing:.04em; text-transform:uppercase;
+  margin-top:6px;
+}
+#regional-breadcrumbs:empty{ display:none; }
+#regional-breadcrumbs .crumb{ color: var(--text-dim); cursor:pointer; }
+#regional-breadcrumbs .crumb:hover{ color: var(--teal); }
+#regional-breadcrumbs .crumb.current{ color: var(--amber); cursor:default; }
+#regional-breadcrumbs .crumb-sep{ color: var(--line-bright); margin:0 2px; }
+
 .topbar-link{
   background:none; border:1px solid var(--line); color: var(--text-dim);
   font-family: var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;

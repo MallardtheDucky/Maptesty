@@ -93,6 +93,7 @@
       <button class="modal-close" id="regional-close">&times;</button>
       <h2 id="regional-title">Regional Survey</h2>
       <div class="panel-note" id="regional-note" style="border:none; padding:0 0 10px; margin:0;"></div>
+      <div id="regional-levels"></div>
       <div id="regional-map"></div>
     </div>
   </div>
@@ -113,15 +114,17 @@
     <h2>About This Archive</h2>
     <p>This survey is compiled and maintained under Continuance protocol, cross referencing faction holding disclosures against the Continuance's own institutional memory, a record stretching, in fragments, toward 1806.</p>
     <p>Site markers are flagged by confidence: <strong style="color:#5fd4c4">CONFIRMED</strong> locations are drawn from verified disclosures, <strong style="color:#e0a53f">APPROXIMATE</strong> locations are drawn from partial or redacted records, and <strong style="color:#c1453f">CLASSIFIED</strong> markers indicate a site whose true location remains unknown to this archive. Their map position is a placeholder within the stated region only.</p>
-    <p>Click any country on the survey map to zoom in and reveal its internal states, provinces, or territories. Use <strong>Dossiers</strong> to browse factions directly, <strong>Zones</strong> to review publicly acknowledged Exclusion Zones, and <strong>Timeline</strong> to review the historical record of the Rift Era.</p>
+    <p>Click any country on the survey map to zoom in and reveal its internal states, provinces, or territories. Where the archive's records go deeper, use the level toggle in the regional window to drill further, down to districts and municipalities. Use <strong>Dossiers</strong> to browse factions directly, <strong>Zones</strong> to review publicly acknowledged Exclusion Zones, and <strong>Timeline</strong> to review the historical record of the Rift Era.</p>
+    <p style="font-size:10.5px; color:var(--text-faint);">Subdivision boundaries beyond national level are retrieved live from <strong>geoBoundaries</strong> (geoboundaries.org), used under CC BY 4.0, with attribution to the original national sources it aggregates.</p>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="js/countries.js?v=20260827b"></script>
-<script src="js/data.js?v=20260827b"></script>
-<script src="js/geo-world.js?v=20260827b"></script>
-<script src="js/geo-countries.js?v=20260827b"></script>
-<script src="js/app.js?v=20260827b"></script>
+<script src="js/countries.js?v=20260831a"></script>
+<script src="js/data.js?v=20260831a"></script>
+<script src="js/geo-world.js?v=20260831a"></script>
+<script src="js/geo-countries.js?v=20260831a"></script>
+<script src="js/geoboundaries.js?v=20260831a"></script>
+<script src="js/app.js?v=20260831a"></script>
 </body>
 </html>

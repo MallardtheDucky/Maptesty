@@ -62,7 +62,7 @@
     zoomControl: true,
     attributionControl: true
   });
-  map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed) · Rendered with Leaflet');
+  map.attributionControl.setPrefix('Boundaries: Natural Earth / amCharts geodata (free-licensed); subdivisions via geoBoundaries (CC BY 4.0) · Rendered with Leaflet');
 
   // Country outlines live in their own pane, below the default overlay
   // pane that circle-marker holdings use, so bringing a selected country
@@ -76,7 +76,6 @@
   let zoneLayerGroup = L.layerGroup().addTo(map);
   let incidentLayerGroup = L.layerGroup().addTo(map);
   let selectedLayer = null;
-  const geoCache = {};
 
   function scanFlash(){
     const el = document.getElementById('scan-flash');
@@ -138,9 +137,66 @@
     return regionalMap;
   }
 
+  const GB = window.CONTINUANCE_GEOBOUNDARIES;
+
+  function drawSubdivisions(rmap, iso3, geojsonOrNull, feature, name){
+    regionalCountryLayer.clearLayers();
+    if(geojsonOrNull){
+      const sub = L.geoJSON(geojsonOrNull, {
+        style: ()=> ({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }),
+        onEachFeature: (f, l)=>{
+          const nm = (f.properties && (f.properties.shapeName || f.properties.name)) || 'Unknown Division';
+          l.bindTooltip(nm, { className:'subdiv-label', sticky:true, direction:'top' });
+          l.on('mouseover', ()=> l.setStyle({ color:'#8fe8da', weight:1.8, fillColor:'#1c3d38', fillOpacity:0.7 }));
+          l.on('mouseout', ()=> l.setStyle({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }));
+        }
+      }).addTo(regionalCountryLayer);
+      document.getElementById('regional-note').textContent =
+        sub.getLayers().length + ' INTERNAL DIVISION' + (sub.getLayers().length===1?'':'S') + ' ON RECORD';
+      if(iso3 === 'RUS'){
+        rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
+      } else {
+        rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
+      }
+    } else {
+      const outline = L.geoJSON(feature, {
+        style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
+      }).addTo(regionalCountryLayer);
+      document.getElementById('regional-note').textContent =
+        'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
+      if(iso3 === 'RUS'){
+        rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
+      } else {
+        rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
+      }
+    }
+    plotRegionalMarkers(name);
+  }
+
+  // Renders the row of level buttons (Province / District / Municipality...)
+  // once we know which ADM levels geoBoundaries actually has on file for
+  // this country, and wires each one up to fetch + draw on click.
+  function renderLevelSwitcher(rmap, iso3, feature, name, levels, activeLevel, onPick){
+    const box = document.getElementById('regional-levels');
+    box.innerHTML = '';
+    if(!levels || !levels.length) return;
+    levels.forEach(lv=>{
+      const btn = document.createElement('button');
+      btn.className = 'lvl-btn' + (lv.level === activeLevel ? ' active' : '');
+      btn.textContent = lv.label + (lv.unitCount ? ' (' + lv.unitCount + ')' : '');
+      btn.addEventListener('click', ()=>{
+        if(btn.classList.contains('active')) return;
+        Array.from(box.children).forEach(c=> c.classList.remove('active'));
+        btn.classList.add('active');
+        onPick(lv);
+      });
+      box.appendChild(btn);
+    });
+  }
+
   function openRegionalWindow(feature, layer){
     const name = feature.properties.name;
-    const iso3 = COUNTRY_MAP[name];
+    const iso3 = (GB && GB.resolveIso3(name, feature.properties.iso_a3)) || COUNTRY_MAP[name] || null;
 
     if(selectedLayer && selectedLayer !== layer) selectedLayer.setStyle(baseCountryStyle());
     selectedLayer = layer;
@@ -150,6 +206,7 @@
     scanFlash();
     document.getElementById('regional-title').textContent = name.toUpperCase();
     document.getElementById('regional-panel').classList.add('open');
+    document.getElementById('regional-levels').innerHTML = '';
 
     const rmap = ensureRegionalMap();
     regionalCountryLayer.clearLayers();
@@ -158,43 +215,38 @@
 
     setTimeout(()=> rmap.invalidateSize(), 30);
 
-    function finish(geojsonOrNull){
-      if(geojsonOrNull){
-        const sub = L.geoJSON(geojsonOrNull, {
-          style: ()=> ({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }),
-          onEachFeature: (f, l)=>{
-            const nm = (f.properties && f.properties.name) || 'Unknown Division';
-            l.bindTooltip(nm, { className:'subdiv-label', sticky:true, direction:'top' });
-            l.on('mouseover', ()=> l.setStyle({ color:'#8fe8da', weight:1.8, fillColor:'#1c3d38', fillOpacity:0.7 }));
-            l.on('mouseout', ()=> l.setStyle({ color:'#5c7b74', weight:1.1, fillColor:'#12211f', fillOpacity:0.55 }));
-          }
-        }).addTo(regionalCountryLayer);
-        document.getElementById('regional-note').textContent =
-          sub.getLayers().length + ' INTERNAL DIVISION' + (sub.getLayers().length===1?'':'S') + ' ON RECORD';
-        if(iso3 === 'RUS'){
-          rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
-        } else {
-          rmap.flyToBounds(sub.getBounds(), { padding:[20,20], duration:0.4 });
-        }
-      } else {
-        const outline = L.geoJSON(feature, {
-          style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
-        }).addTo(regionalCountryLayer);
-        document.getElementById('regional-note').textContent =
-          'NO REGIONAL SUBDIVISION SURVEY ON FILE // NATIONAL BOUNDARY ONLY';
-        if(iso3 === 'RUS'){
-          rmap.fitBounds([[41, 19], [82, 180]], { padding:[20,20], duration:0.4, maxZoom:4 });
-        } else {
-          rmap.flyToBounds(outline.getBounds(), { padding:[20,20], duration:0.4 });
-        }
-      }
-      plotRegionalMarkers(name);
+    function loadLevel(lv){
+      document.getElementById('regional-note').textContent = 'LOADING ' + lv.label + ' SURVEY…';
+      GB.fetchGeometry(iso3, lv.level, lv.url)
+        .then(gj=> drawSubdivisions(rmap, iso3, gj, feature, name))
+        .catch(()=>{
+          document.getElementById('regional-note').textContent =
+            lv.label + ' SURVEY UNAVAILABLE // NETWORK OR SOURCE ERROR';
+          drawSubdivisions(rmap, iso3, null, feature, name);
+        });
     }
 
-    if(!iso3){ finish(null); return; }
-    if(geoCache[iso3]){ finish(geoCache[iso3]); return; }
-    const gj = (window.CONTINUANCE_COUNTRY_GEO || {})[iso3];
-    if(gj){ geoCache[iso3] = gj; finish(gj); } else { finish(null); }
+    function offlineFallback(){
+      // No live geoBoundaries data (no ISO3, offline, or the country isn't
+      // tracked) -- fall back to the small locally-bundled ADM1 set for the
+      // curated countries this archive originally shipped with.
+      const gj = iso3 ? (window.CONTINUANCE_COUNTRY_GEO || {})[iso3] : null;
+      drawSubdivisions(rmap, iso3, gj || null, feature, name);
+    }
+
+    if(!iso3 || !GB){ offlineFallback(); return; }
+
+    GB.fetchLevels(iso3).then(levels=>{
+      // ADM0 is just the national outline we already have; only offer
+      // levels below it as subdivision options.
+      const subLevels = levels.filter(l=> l.level !== 'ADM0');
+      if(!subLevels.length){ offlineFallback(); return; }
+      const first = subLevels[0];
+      renderLevelSwitcher(rmap, iso3, feature, name, subLevels, first.level, loadLevel);
+      loadLevel(first);
+    }).catch(()=>{
+      offlineFallback();
+    });
   }
 
   function locMatchesCountry(loc, countryName){
@@ -248,6 +300,7 @@
 
   function closeRegionalWindow(){
     document.getElementById('regional-panel').classList.remove('open');
+    document.getElementById('regional-levels').innerHTML = '';
     if(selectedLayer){ selectedLayer.setStyle(baseCountryStyle()); selectedLayer = null; }
   }
   document.getElementById('regional-close').addEventListener('click', closeRegionalWindow);

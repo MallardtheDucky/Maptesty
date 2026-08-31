@@ -426,6 +426,19 @@ a{ color: var(--teal); }
 }
 #regional-panel .leaflet-container{ background:#04191a; }
 
+#regional-levels{
+  display:flex; flex-wrap:wrap; gap:6px; flex-shrink:0;
+}
+#regional-levels:empty{ display:none; }
+#regional-levels .lvl-btn{
+  background:none; border:1px solid var(--line); color: var(--text-dim);
+  font-family: var(--font-mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+  padding:5px 9px; cursor:pointer;
+}
+#regional-levels .lvl-btn:hover{ color: var(--teal); border-color: var(--teal-dim); }
+#regional-levels .lvl-btn.active{ color: var(--amber); border-color: var(--amber); }
+#regional-levels .lvl-btn:disabled{ opacity:.45; cursor:default; }
+
 .topbar-link{
   background:none; border:1px solid var(--line); color: var(--text-dim);
   font-family: var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;

@@ -34,18 +34,36 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
   }
 
   // geoBoundaries' metadata API hands back geometry URLs shaped like
-  // https://github.com/<org>/<repo>/raw/<ref>/<path>. That "raw" path on
-  // github.com is a redirector: it 302s to raw.githubusercontent.com, but
-  // the redirect response itself doesn't carry a valid
-  // Access-Control-Allow-Origin header, so a cross-origin fetch() dies on
-  // the hop before ever reaching the actual file. raw.githubusercontent.com
-  // serves the same bytes directly, with correct CORS headers, so rewrite
-  // to that host up front and skip the broken redirect entirely.
+  // https://github.com/<org>/<repo>/raw/<ref>/<path>. Two problems with
+  // that, discovered the hard way:
+  //   1) That "raw" path on github.com is a redirector to
+  //      raw.githubusercontent.com, and the redirect response itself
+  //      doesn't carry a valid Access-Control-Allow-Origin header, so a
+  //      cross-origin fetch() dies on the hop before reaching the file.
+  //   2) Even raw.githubusercontent.com doesn't help here: as of
+  //      geoBoundaries 5.0, every release file is stored via Git LFS, so
+  //      that host only serves the small LFS *pointer* text
+  //      ("version https://git-lfs.github.com/spec/v1..."), not the
+  //      actual GeoJSON bytes.
+  // GitHub's media.githubusercontent.com host is the one that actually
+  // resolves LFS pointers to real file content, with correct CORS
+  // headers. We rewrite to that host and use the "main" branch rather
+  // than the (possibly abbreviated, LFS-incompatible) commit ref the API
+  // gave us -- "main" always has the current release at this same path.
   function normalizeGeoUrl(url){
     if(!url) return url;
-    const m = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/(.+)$/.exec(url);
-    if(m) return "https://raw.githubusercontent.com/" + m[1] + "/" + m[2] + "/" + m[3];
+    const m = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/[^/]+\/(.+)$/.exec(url);
+    if(m) return "https://media.githubusercontent.com/media/" + m[1] + "/" + m[2] + "/main/" + m[3];
+    const m2 = /^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/[^/]+\/(.+)$/.exec(url);
+    if(m2) return "https://media.githubusercontent.com/media/" + m2[1] + "/" + m2[2] + "/main/" + m2[3];
     return url;
+  }
+
+  // Detects the small text stand-in Git LFS leaves behind when a host
+  // doesn't resolve the pointer to real content, so we can treat it as a
+  // failure (and fall back) instead of trying to JSON.parse it.
+  function isLfsPointerText(text){
+    return typeof text === "string" && text.slice(0, 40).indexOf("version https://git-lfs") === 0;
   }
 
   function lsGet(key){
@@ -65,50 +83,37 @@ window.CONTINUANCE_GEOBOUNDARIES = (function(){
     return fetch(url, { signal: ctrl.signal }).finally(()=> clearTimeout(t));
   }
 
-  // Converts a raw.githubusercontent.com URL into the equivalent jsDelivr
-  // GitHub-mirror URL. jsDelivr is a CDN, not a raw-content passthrough,
-  // so it reliably sends correct CORS headers -- unlike some read-only
-  // relay services, which come and go. Used as a last-resort fallback.
-  function toJsDelivr(url){
-    const m = /^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/.exec(url);
-    if(!m) return null;
-    return "https://cdn.jsdelivr.net/gh/" + m[1] + "/" + m[2] + "@" + m[3] + "/" + m[4];
+  // Converts a media.githubusercontent.com LFS-resolving URL into a
+  // generic public CORS relay URL, as a last-resort fallback if GitHub's
+  // own media host is unreachable or rate-limited.
+  function toRelay(url){
+    return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
   }
 
-  // A handful of geoBoundaries geometry/metadata hosts are inconsistent
-  // about sending CORS headers. When a direct fetch fails for what looks
-  // like a CORS/network reason (as opposed to a real 404), retry once
-  // through the jsDelivr GitHub CDN mirror (if the URL is a GitHub raw
-  // URL) and, failing that, through a generic public CORS relay, so a
-  // missing Access-Control-Allow-Origin header on their end doesn't just
-  // break the feature outright.
+  // Some geoBoundaries hosts are inconsistent about CORS headers, and
+  // (separately) Git LFS files resolve to a small pointer stand-in
+  // instead of real content on some hosts. A fetch "succeeds" here only
+  // if it returns a real HTTP success AND the body isn't an LFS pointer;
+  // otherwise we retry via a public CORS relay before giving up, so a
+  // single misbehaving host doesn't just break the feature outright.
   function fetchJSON(url, label){
-    return fetchWithTimeout(url, 25000)
-      .then(r=>{
+    function attempt(target){
+      return fetchWithTimeout(target, 25000).then(r=>{
         if(!r.ok) throw new Error(label + " HTTP " + r.status);
-        return r.json();
-      })
-      .catch(directErr=>{
-        console.warn('[geoBoundaries] direct fetch failed for', label, url, '-- trying fallbacks.', directErr);
-        const jsdelivr = toJsDelivr(url);
-        const attempts = [];
-        if(jsdelivr) attempts.push(jsdelivr);
-        attempts.push("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
-
-        let chain = Promise.reject(directErr);
-        attempts.forEach(candidate=>{
-          chain = chain.catch(()=>
-            fetchWithTimeout(candidate, 25000).then(r=>{
-              if(!r.ok) throw new Error(label + " (via " + candidate + ") HTTP " + r.status);
-              return r.json();
-            })
-          );
-        });
-        return chain.catch(finalErr=>{
-          console.error('[geoBoundaries] all fallbacks failed for', label, url, finalErr);
-          throw new Error(label + ' failed via direct fetch and all fallbacks: ' + (finalErr && finalErr.message));
-        });
+        return r.text();
+      }).then(text=>{
+        if(isLfsPointerText(text)) throw new Error(label + " returned an unresolved Git LFS pointer instead of file content");
+        return JSON.parse(text);
       });
+    }
+
+    return attempt(url).catch(directErr=>{
+      console.warn('[geoBoundaries] direct fetch failed for', label, url, '-- retrying via CORS relay.', directErr);
+      return attempt(toRelay(url)).catch(relayErr=>{
+        console.error('[geoBoundaries] relay fetch also failed for', label, url, relayErr);
+        throw new Error(label + ' failed both directly and via relay: ' + (directErr && directErr.message) + ' / ' + (relayErr && relayErr.message));
+      });
+    });
   }
 
   // A single request to the special "ALL" endpoint returns metadata for

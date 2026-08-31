@@ -84,11 +84,30 @@
     el.classList.add('active');
   }
 
+    // Tiny countries (Vatican, Monaco, San Marino, Singapore, etc.) can be
+  // just a handful of pixels wide even when fully zoomed in, which makes
+  // them nearly impossible to click reliably. We give every country under
+  // this bbox-area threshold (in square degrees -- rough but consistent
+  // with the sizing already used elsewhere in this file) a small always-
+  // clickable proxy marker at its centroid, in addition to its real
+  // outline, so opening its regional window doesn't depend on landing a
+  // pixel-perfect click on a sliver of a shape.
+  const ENCLAVE_AREA_THRESHOLD = 0.3;
+  let enclaveLayerGroup = L.layerGroup().addTo(map);
+  map.createPane('enclavePane');
+  map.getPane('enclavePane').style.zIndex = 395; // above countryPane(390), below the default overlayPane(400) faction/zone/incident markers
+
     (function(){
     try{
     const world = window.CONTINUANCE_WORLD;
+    // Sort largest-first so smaller countries are added (and therefore
+    // painted) after -- and on top of -- any larger country that might
+    // otherwise visually and functionally swallow them, exactly like the
+    // enclave handling already done for subdivisions in renderFeatureSet.
+    const orderedFeatures = (world.features || []).slice().sort((a,b)=> bboxArea(b) - bboxArea(a));
+    const orderedWorld = { type:'FeatureCollection', features: orderedFeatures };
 
-    const makeWorld = (offset)=> L.geoJSON(world, {
+    const makeWorld = (offset)=> L.geoJSON(orderedWorld, {
       pane: 'countryPane',
       coordsToLatLng: coords => L.latLng(coords[1], coords[0] + offset),
       style: baseCountryStyle,
@@ -96,6 +115,21 @@
         layer.on('mouseover', ()=>{ if(layer !== selectedLayer) layer.setStyle(hoverCountryStyle()); });
         layer.on('mouseout', ()=>{ if(layer !== selectedLayer) layer.setStyle(baseCountryStyle()); });
         layer.on('click', ()=> openRegionalWindow(feature, layer));
+
+        if(bboxArea(feature) < ENCLAVE_AREA_THRESHOLD){
+          const c = featureCentroid(feature);
+          if(c){
+            const proxy = L.circleMarker([c[1], c[0] + offset], {
+              pane: 'enclavePane', radius: 7, weight: 1.5,
+              color: '#8fe8da', fillColor: '#5fd4c4', fillOpacity: 0.85
+            });
+            proxy.bindTooltip(feature.properties.name, { direction:'top', offset:[0,-8] });
+            proxy.on('mouseover', ()=>{ if(layer !== selectedLayer) layer.setStyle(hoverCountryStyle()); });
+            proxy.on('mouseout', ()=>{ if(layer !== selectedLayer) layer.setStyle(baseCountryStyle()); });
+            proxy.on('click', ()=> openRegionalWindow(feature, layer));
+            proxy.addTo(enclaveLayerGroup);
+          }
+        }
       }
     });
 
@@ -189,11 +223,13 @@
     if(!c) return false;
     return pointInRings(c[0], c[1], flattenRings(parentFeature.geometry));
   }
-  // Rough bounding-box area, used only to decide paint order (see
-  // renderFeatureSet) -- doesn't need to be a real-world area unit.
-  function bboxArea(feature){
+  // Rough bounding box {minX,minY,maxX,maxY} in raw geometry coordinates
+  // (lon/lat), used for both paint-order area sizing and the bbox-overlap
+  // fallback below. Not a real-world area/measurement -- just consistent
+  // relative sizing.
+  function featureBBox(feature){
     const geom = feature && feature.geometry;
-    if(!geom) return 0;
+    if(!geom) return null;
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
     const scan = ring => ring.forEach(c=>{
       if(c[0]<minX) minX=c[0]; if(c[0]>maxX) maxX=c[0];
@@ -201,8 +237,20 @@
     });
     if(geom.type === 'Polygon') geom.coordinates.forEach(scan);
     else if(geom.type === 'MultiPolygon') geom.coordinates.forEach(poly=> poly.forEach(scan));
-    else return 0;
-    return Math.max(0, maxX-minX) * Math.max(0, maxY-minY);
+    else return null;
+    if(minX===Infinity) return null;
+    return { minX, minY, maxX, maxY };
+  }
+  function bboxOverlaps(a, b){
+    if(!a || !b) return false;
+    return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
+  }
+  // Rough bounding-box area, used only to decide paint order (see
+  // renderFeatureSet) -- doesn't need to be a real-world area unit.
+  function bboxArea(feature){
+    const box = featureBBox(feature);
+    if(!box) return 0;
+    return Math.max(0, box.maxX-box.minX) * Math.max(0, box.maxY-box.minY);
   }
   function subdivName(f){
     return (f.properties && (f.properties.shapeName || f.properties.name)) || 'Unknown Division';
@@ -315,11 +363,27 @@
     GB.fetchGeometry(currentIso3, lv.level, lv.url).then(gj=>{
       let features = gj.features || [];
       if(parentFeature){
-        const filtered = features.filter(f=> featureWithinParent(f, parentFeature));
-        // If the containment test comes up empty (e.g. a sliver/coastal
-        // parent shape our centroid approximation misses), fall back to
-        // showing everything rather than an empty, confusing map.
-        if(filtered.length) features = filtered;
+        let filtered = features.filter(f=> featureWithinParent(f, parentFeature));
+        if(!filtered.length){
+          // The exact centroid-in-polygon test can miss on a sliver/coastal
+          // parent shape or a simplified boundary -- retry with a looser
+          // bounding-box overlap before concluding there's genuinely no
+          // subdivision data on file for this area.
+          const pbox = featureBBox(parentFeature);
+          filtered = features.filter(f=> bboxOverlaps(featureBBox(f), pbox));
+        }
+        if(filtered.length){
+          features = filtered;
+        } else {
+          // Genuinely nothing here (e.g. a federal city like Moscow that
+          // geoBoundaries doesn't break into further districts). Showing
+          // every division in the whole country here would be far more
+          // confusing than being upfront that this specific area has no
+          // survey data at this level -- so stop at the parent's own
+          // outline instead of silently zooming back out nationally.
+          renderEmptyLevel(parentFeature, levelIndex);
+          return;
+        }
       }
       renderFeatureSet(features, levelIndex, parentFeature);
     }).catch(err=>{
@@ -327,6 +391,26 @@
       document.getElementById('regional-note').textContent =
         lv.label + ' SURVEY FAILED TO LOAD // SEE BROWSER CONSOLE FOR DETAILS';
     });
+  }
+
+  // Shown in place of renderFeatureSet when a drilled-into area (e.g. a
+  // state) has zero matching divisions at the next level down. Keeps the
+  // breadcrumb/level-switcher UI intact and still plots any faction
+  // markers for the country, but is honest that there's nothing further
+  // to drill into here rather than dumping the whole country back out.
+  function renderEmptyLevel(parentFeature, levelIndex){
+    regionalCountryLayer.clearLayers();
+    const layer = L.geoJSON(parentFeature, {
+      style: ()=> ({ color:'#5c7b74', weight:1.4, fillColor:'#12211f', fillOpacity:0.55 })
+    }).addTo(regionalCountryLayer);
+    const lv = currentLevels[levelIndex];
+    document.getElementById('regional-note').textContent =
+      'NO ' + (lv && lv.label || 'SUBDIVISION') + ' SURVEY ON RECORD FOR THIS AREA';
+    Array.from(document.getElementById('regional-levels').children).forEach((c,i)=> c.classList.toggle('active', i===levelIndex));
+    if(layer.getBounds().isValid()){
+      regionalMap.flyToBounds(layer.getBounds(), { padding:[24,24], duration:0.4 });
+    }
+    plotRegionalMarkers(currentCountryName);
   }
 
   function drawOfflineOrNoData(rmap, iso3, geojsonOrNull, feature, name, noteOverride){
@@ -353,6 +437,12 @@
     plotRegionalMarkers(name);
   }
 
+  // Above this many divisions in a single level, loading and rendering
+  // every shape at once can noticeably lag or freeze the page (especially
+  // on lower-end devices) -- so we flag it and make the user confirm
+  // before paying that cost, rather than silently locking up the tab.
+  const HEAVY_LEVEL_THRESHOLD = 10000;
+
   // Renders the row of level buttons (Province / District / Municipality...)
   // once we know which ADM levels geoBoundaries actually has on file for
   // this country. Picking one directly always resets any drill-down and
@@ -362,10 +452,22 @@
     box.innerHTML = '';
     if(!levels || !levels.length) return;
     levels.forEach((lv, idx)=>{
+      const isHeavy = lv.unitCount && lv.unitCount > HEAVY_LEVEL_THRESHOLD;
       const btn = document.createElement('button');
-      btn.className = 'lvl-btn' + (idx === activeIndex ? ' active' : '');
-      btn.textContent = lv.label + (lv.unitCount ? ' (' + lv.unitCount + ')' : '');
+      btn.className = 'lvl-btn' + (idx === activeIndex ? ' active' : '') + (isHeavy ? ' heavy' : '');
+      btn.textContent = (isHeavy ? '⚠ ' : '') + lv.label + (lv.unitCount ? ' (' + lv.unitCount + ')' : '');
+      if(isHeavy){
+        btn.title = 'This level has ' + lv.unitCount + ' divisions on record -- loading them all at once can lag or freeze the page.';
+      }
       btn.addEventListener('click', ()=>{
+        if(isHeavy){
+          const proceed = window.confirm(
+            'This level has ' + lv.unitCount.toLocaleString() + ' divisions on record for ' + currentCountryName + '.\n\n' +
+            'Loading that many shapes at once can make the page slow or unresponsive, especially on slower devices.\n\n' +
+            'Continue anyway?'
+          );
+          if(!proceed) return;
+        }
         viewStack = [{ levelIndex: idx, parentFeature: null, label: currentCountryName }];
         renderBreadcrumbs();
         showLevel(idx, null);

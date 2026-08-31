@@ -438,6 +438,9 @@ a{ color: var(--teal); }
 #regional-levels .lvl-btn:hover{ color: var(--teal); border-color: var(--teal-dim); }
 #regional-levels .lvl-btn.active{ color: var(--amber); border-color: var(--amber); }
 #regional-levels .lvl-btn:disabled{ opacity:.45; cursor:default; }
+#regional-levels .lvl-btn.heavy{ color: var(--red); border-color: var(--red-dim); }
+#regional-levels .lvl-btn.heavy:hover{ color: var(--red); border-color: var(--red); }
+#regional-levels .lvl-btn.heavy.active{ color: var(--red); border-color: var(--red); }
 
 #regional-breadcrumbs{
   display:flex; flex-wrap:wrap; align-items:center; gap:2px; flex-shrink:0;

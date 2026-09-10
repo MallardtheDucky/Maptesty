@@ -63,10 +63,6 @@
     attributionControl: false
   });
 
-  // Country outlines live in their own pane, below the default overlay
-  // pane that circle-marker holdings use, so bringing a selected country
-  // to the front (for its highlight border) can never sit on top of and
-  // block clicks on the site markers inside it.
   map.createPane('countryPane');
   map.getPane('countryPane').style.zIndex = 390;
 
@@ -83,33 +79,14 @@
     el.classList.add('active');
   }
 
-    // Tiny countries (Vatican, Monaco, San Marino, Singapore, etc.) can be
-  // just a handful of pixels wide even when fully zoomed in, which makes
-  // them nearly impossible to click reliably. We give every country under
-  // this bbox-area threshold (in square degrees -- rough but consistent
-  // with the sizing already used elsewhere in this file) a small always-
-  // clickable proxy marker at its centroid, in addition to its real
-  // outline, so opening its regional window doesn't depend on landing a
-  // pixel-perfect click on a sliver of a shape.
-  //
-  // This ends up flagging every small island nation too (Lesser Antilles
-  // etc.), which reads as visual clutter at the world view, so the layer
-  // is built as usual but kept OFF the map by default -- it's just not
-  // added via .addTo() here. It's toggled on/off via the "Small-Island
-  // Markers" legend checkbox instead, same pattern as the faction/zone/
-  // incident layers below.
   const ENCLAVE_AREA_THRESHOLD = 0.3;
-  let enclaveLayerGroup = L.layerGroup(); // intentionally not added to map yet
+  let enclaveLayerGroup = L.layerGroup(); 
   map.createPane('enclavePane');
-  map.getPane('enclavePane').style.zIndex = 395; // above countryPane(390), below the default overlayPane(400) faction/zone/incident markers
+  map.getPane('enclavePane').style.zIndex = 395; 
 
     (function(){
     try{
     const world = window.CONTINUANCE_WORLD;
-    // Sort largest-first so smaller countries are added (and therefore
-    // painted) after -- and on top of -- any larger country that might
-    // otherwise visually and functionally swallow them, exactly like the
-    // enclave handling already done for subdivisions in renderFeatureSet.
     const orderedFeatures = (world.features || []).slice().sort((a,b)=> bboxArea(b) - bboxArea(a));
     const orderedWorld = { type:'FeatureCollection', features: orderedFeatures };
 
@@ -179,13 +156,6 @@
 
   const GB = window.CONTINUANCE_GEOBOUNDARIES;
 
-  // ---- Point-in-polygon helpers (used to work out which lower-level
-  // divisions -- e.g. districts -- fall inside a higher-level one a user
-  // just clicked -- e.g. a state -- so drilling down can filter to just
-  // that area). Ray-casting over every ring (outer + holes) of a
-  // Polygon/MultiPolygon; running the crossing count over all rings
-  // combined naturally handles holes via the even-odd rule, so no special
-  // casing is needed for enclaves. ----
   function flattenRings(geom){
     if(!geom) return [];
     if(geom.type === 'Polygon') return geom.coordinates;
@@ -205,9 +175,6 @@
     });
     return inside;
   }
-  // Approximate centroid from a feature's largest outer ring -- good
-  // enough to test "is this district inside that state" without pulling
-  // in a full geometry library.
   function featureCentroid(feature){
     const geom = feature && feature.geometry;
     if(!geom) return null;
@@ -222,17 +189,13 @@
     if(!ring || !ring.length) return null;
     let sx = 0, sy = 0;
     ring.forEach(c=>{ sx += c[0]; sy += c[1]; });
-    return [sx / ring.length, sy / ring.length]; // [lon, lat]
+    return [sx / ring.length, sy / ring.length]; 
   }
   function featureWithinParent(childFeature, parentFeature){
     const c = featureCentroid(childFeature);
     if(!c) return false;
     return pointInRings(c[0], c[1], flattenRings(parentFeature.geometry));
   }
-  // Rough bounding box {minX,minY,maxX,maxY} in raw geometry coordinates
-  // (lon/lat), used for both paint-order area sizing and the bbox-overlap
-  // fallback below. Not a real-world area/measurement -- just consistent
-  // relative sizing.
   function featureBBox(feature){
     const geom = feature && feature.geometry;
     if(!geom) return null;
@@ -251,8 +214,6 @@
     if(!a || !b) return false;
     return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
   }
-  // Rough bounding-box area, used only to decide paint order (see
-  // renderFeatureSet) -- doesn't need to be a real-world area unit.
   function bboxArea(feature){
     const box = featureBBox(feature);
     if(!box) return 0;
@@ -262,14 +223,11 @@
     return (f.properties && (f.properties.shapeName || f.properties.name)) || 'Unknown Division';
   }
 
-  // ---- Regional-window state: which country, which ADM levels it has,
-  // and the drill path the user has clicked into (country -> state ->
-  // district -> ...). ----
   let currentIso3 = null;
   let currentCountryFeature = null;
   let currentCountryName = null;
-  let currentLevels = [];   // subdivision levels available for this country, ADM1..ADM5
-  let viewStack = [];       // [{ levelIndex, parentFeature, label }] -- breadcrumb trail
+  let currentLevels = []; 
+  let viewStack = []; 
 
   function renderBreadcrumbs(){
     const el = document.getElementById('regional-breadcrumbs');
@@ -297,16 +255,10 @@
     });
   }
 
-  // Renders one set of already-fetched-and-optionally-filtered features
-  // (a state's districts, a country's states, etc) onto the regional map,
-  // wiring up hover, tooltip, and -- when a deeper ADM level exists --
-  // click-to-drill.
   function renderFeatureSet(features, levelIndex, parentFeature){
     regionalCountryLayer.clearLayers();
     const hasDeeper = levelIndex + 1 < currentLevels.length;
 
-    // Faint outline of the parent area we've drilled into, for context --
-    // not interactive, so it never steals clicks/hover from its children.
     if(parentFeature){
       L.geoJSON(parentFeature, {
         style: ()=> ({ color:'#e0a53f', weight:1.6, fillOpacity:0, dashArray:'4,3' }),
@@ -314,12 +266,6 @@
       }).addTo(regionalCountryLayer);
     }
 
-    // Sort largest-first, then add/bringToFront in that order, so the
-    // smallest shapes end up painted last (topmost). This matters for
-    // enclaves -- e.g. a capital city that's its own division fully
-    // surrounded by a much larger province -- which would otherwise be
-    // visually and functionally swallowed by the bigger shape drawn over
-    // it, with no way to hover or click the smaller one underneath.
     const ordered = features.slice().sort((a,b)=> bboxArea(b) - bboxArea(a));
 
     const sub = L.geoJSON({ type:'FeatureCollection', features: ordered }, {
@@ -359,9 +305,6 @@
     plotRegionalMarkers(currentCountryName);
   }
 
-  // Fetches (or reuses the already-cached) geometry for a level, filters
-  // it down to whatever lies inside parentFeature (if we've drilled in),
-  // and renders it.
   function showLevel(levelIndex, parentFeature){
     const lv = currentLevels[levelIndex];
     if(!lv) return;
@@ -371,22 +314,12 @@
       if(parentFeature){
         let filtered = features.filter(f=> featureWithinParent(f, parentFeature));
         if(!filtered.length){
-          // The exact centroid-in-polygon test can miss on a sliver/coastal
-          // parent shape or a simplified boundary -- retry with a looser
-          // bounding-box overlap before concluding there's genuinely no
-          // subdivision data on file for this area.
           const pbox = featureBBox(parentFeature);
           filtered = features.filter(f=> bboxOverlaps(featureBBox(f), pbox));
         }
         if(filtered.length){
           features = filtered;
         } else {
-          // Genuinely nothing here (e.g. a federal city like Moscow that
-          // geoBoundaries doesn't break into further districts). Showing
-          // every division in the whole country here would be far more
-          // confusing than being upfront that this specific area has no
-          // survey data at this level -- so stop at the parent's own
-          // outline instead of silently zooming back out nationally.
           renderEmptyLevel(parentFeature, levelIndex);
           return;
         }
@@ -399,11 +332,6 @@
     });
   }
 
-  // Shown in place of renderFeatureSet when a drilled-into area (e.g. a
-  // state) has zero matching divisions at the next level down. Keeps the
-  // breadcrumb/level-switcher UI intact and still plots any faction
-  // markers for the country, but is honest that there's nothing further
-  // to drill into here rather than dumping the whole country back out.
   function renderEmptyLevel(parentFeature, levelIndex){
     regionalCountryLayer.clearLayers();
     const layer = L.geoJSON(parentFeature, {
@@ -443,23 +371,10 @@
     plotRegionalMarkers(name);
   }
 
-  // Above this many divisions in a single level, loading and rendering
-  // every shape at once can noticeably lag or freeze the page (especially
-  // on lower-end devices) -- so we flag it and make the user confirm
-  // before paying that cost, rather than silently locking up the tab.
   const HEAVY_LEVEL_THRESHOLD = 10000;
 
-  // Above this many divisions in a single level, the data set is dropped
-  // entirely rather than merely flagged -- e.g. India's village-level ADM
-  // boundaries (~650,000 units) are too heavy to be usable at all, so
-  // that level is excluded from the switcher outright instead of just
-  // getting the "heavy" warning treatment.
   const EXCLUDE_LEVEL_THRESHOLD = 100000;
 
-  // Renders the row of level buttons (Province / District / Municipality...)
-  // once we know which ADM levels geoBoundaries actually has on file for
-  // this country. Picking one directly always resets any drill-down and
-  // jumps straight to that level for the whole country.
   function renderLevelSwitcher(levels, activeIndex){
     const box = document.getElementById('regional-levels');
     box.innerHTML = '';
@@ -518,10 +433,6 @@
     setTimeout(()=> rmap.invalidateSize(), 30);
 
     function offlineFallback(){
-      // No live geoBoundaries data (no ISO3, offline, or the country isn't
-      // tracked) -- fall back to the small locally-bundled ADM1 set for the
-      // curated countries this archive originally shipped with. No
-      // click-to-drill here since there's only ever one level on file.
       const gj = iso3 ? (window.CONTINUANCE_COUNTRY_GEO || {})[iso3] : null;
       drawOfflineOrNoData(rmap, iso3, gj || null, feature, name);
     }
@@ -529,8 +440,6 @@
     if(!iso3 || !GB){ offlineFallback(); return; }
 
     GB.fetchLevels(iso3).then(levels=>{
-      // ADM0 is just the national outline we already have; only offer
-      // levels below it as subdivision options.
       const subLevels = levels.filter(l=> l.level !== 'ADM0' && !(l.unitCount && l.unitCount > EXCLUDE_LEVEL_THRESHOLD));
       if(!subLevels.length){ offlineFallback(); return; }
       currentLevels = subLevels;
@@ -899,9 +808,6 @@
   hideSidebarBtn.addEventListener('click', ()=> setSidebarHidden(true));
   showSidebarTab.addEventListener('click', ()=> setSidebarHidden(false));
 
-    // Survey Layers panel: collapsed by default on narrow/mobile screens
-  // (handled purely by the CSS media query — no class needed to start hidden),
-  // toggled open with a small tab and closed again with its own close button.
   const showLayersTab = document.getElementById('show-layers-tab');
   const layerControlClose = document.getElementById('layer-control-close');
   if(showLayersTab && layerControlClose){
@@ -909,13 +815,6 @@
     layerControlClose.addEventListener('click', ()=> shellEl.classList.remove('layers-open'));
   }
 
-    // ---- Full survey snapshot export ----
-  // Renders the entire world, every visible faction holding / exclusion zone /
-  // historical incident as a small dot, onto an offscreen canvas and downloads
-  // it as a PNG. This is drawn from the raw geodata + coordinate data directly
-  // (rather than screenshotting the live Leaflet DOM), so it always captures
-  // the whole map at full resolution regardless of current pan/zoom or screen
-  // size, and works the same on mobile as on desktop.
   function mercY(latDeg){
     const clamped = Math.max(Math.min(latDeg, 85.05), -85.05);
     const rad = clamped * Math.PI / 180;
@@ -1103,7 +1002,7 @@
     ctx.fillText('Boundaries: Natural Earth / amCharts geodata (free-licensed) · Rendered with Leaflet · Generated by The Continuance Archive', marginX, totalH - 18);
 
     canvas.toBlob(blob=>{
-      if(!blob){ alert('Snapshot generation failed — please try again.'); return; }
+      if(!blob){ alert('Snapshot generation failed. Please try again.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

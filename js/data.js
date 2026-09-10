@@ -43,6 +43,22 @@ window.CONTINUANCE_DATA = {
           "lon": 26.283,
           "country": "Romania",
           "precision": "approx"
+        },
+        {
+          "name": "Site-05 \"Picos\"",
+          "loc": "Picos de Europa National Park, Asturias, Spain",
+          "lat": 43.181726430110345,
+          "lon": -4.875257096617818,
+          "country": "Spain",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Site-06 \"Nong\"",
+          "loc": "Nong Bha, Surin, Thailand",
+          "lat": 15.272793354284255,
+          "lon": 103.55203284321051,
+          "country": "Thailand",
+          "precision": "confirmed"
         }
       ]
     },
@@ -71,6 +87,22 @@ window.CONTINUANCE_DATA = {
           "loc": "Mountain View, California, United States",
           "lat": 37.4161,
           "lon": -122.049,
+          "country": "United States of America",
+          "precision": "confirmed"
+        },
+        {
+          "name": "California Polytechnic State University",
+          "loc": "San Luis Obispo, California, United States",
+          "lat": 35.313,
+          "lon": -120.67,
+          "country": "United States of America",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Santa Cruz Island Airstrip",
+          "loc": "Santa Cruz, California, United States",
+          "lat": 34.0183,
+          "lon": -119.852,
           "country": "United States of America",
           "precision": "confirmed"
         }
@@ -181,44 +213,6 @@ window.CONTINUANCE_DATA = {
           "lon": 100.5018,
           "country": "Thailand",
           "precision": "confirmed"
-        }
-      ]
-    },
-    {
-      "name": "Lobotomy Corporation",
-      "tag": "LOBC",
-      "holdings": [
-        {
-          "name": "Undisclosed Site",
-          "loc": "Somewhere Norway",
-          "lat": 62.0,
-          "lon": 10.0,
-          "country": "Norway",
-          "precision": "classified"
-        },
-        {
-          "name": "Undisclosed Site",
-          "loc": "Somewhere Sweden",
-          "lat": 62.5,
-          "lon": 15.0,
-          "country": "Sweden",
-          "precision": "classified"
-        },
-        {
-          "name": "Undisclosed Site",
-          "loc": "Somewhere Denmark",
-          "lat": 56.0,
-          "lon": 10.0,
-          "country": "Denmark",
-          "precision": "classified"
-        },
-        {
-          "name": "Undisclosed Site",
-          "loc": "Somewhere Finland",
-          "lat": 64.0,
-          "lon": 26.0,
-          "country": "Finland",
-          "precision": "classified"
         }
       ]
     },
@@ -371,6 +365,14 @@ window.CONTINUANCE_DATA = {
           "lon": 14.5167,
           "country": "Sweden",
           "precision": "confirmed"
+        },
+        {
+          "name": "Undisclosed Site",
+          "loc": "Somewhere Sweden",
+          "lat": 61.933944,
+          "lon": 14.906472,
+          "country": "Sweden",
+          "precision": "classified"
         },
         {
           "name": "Umeå Station",
@@ -538,6 +540,22 @@ window.CONTINUANCE_DATA = {
           "lat": 45.6495,
           "lon": 13.7768,
           "country": "Italy",
+          "precision": "confirmed"
+        },
+        {
+          "name": "AEGIS Crolles Research and Manufacturing Center",
+          "loc": "Crolles, Auvergne Rhone Alpes, France",
+          "lat": 45.26673995825404,
+          "lon": 5.881997628740902,
+          "country": "France",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Let-Vand Zone Research Facility",
+          "loc": "North Sea",
+          "lat": 59.878422194057656,
+          "lon": 1.5608895231088846,
+          "country": "International Waters",
           "precision": "confirmed"
         }
       ]
@@ -791,6 +809,22 @@ window.CONTINUANCE_DATA = {
           "lon": -4.1427,
           "country": "United Kingdom",
           "precision": "confirmed"
+        },
+        {
+          "name": "Jovian Holdings Group",
+          "loc": "New York City, New York, United States",
+          "lat": 40.713056,
+          "lon": -74.013333,
+          "country": "United States of America",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Oceanside Chantry",
+          "loc": "Oceanside, California, United States",
+          "lat": 33.201,
+          "lon": -117.364,
+          "country": "United States of America",
+          "precision": "confirmed"
         }
       ]
     },
@@ -828,44 +862,6 @@ window.CONTINUANCE_DATA = {
           "lat": -34.6037,
           "lon": -58.3816,
           "country": "Argentina",
-          "precision": "confirmed"
-        }
-      ]
-    },
-    {
-      "name": "Dezerium",
-      "tag": "DEZR",
-      "holdings": [
-        {
-          "name": "St. John's Terminal",
-          "loc": "Newfoundland and Labrador, Canada",
-          "lat": 47.5615,
-          "lon": -52.7126,
-          "country": "Canada",
-          "precision": "confirmed"
-        },
-        {
-          "name": "Dezarium I",
-          "loc": "Space Station, Low Earth Orbit",
-          "lat": 0,
-          "lon": 0,
-          "country": "orbit",
-          "precision": "orbital"
-        },
-        {
-          "name": "Iqaluit Terminal",
-          "loc": "Canada",
-          "lat": 63.7467,
-          "lon": -68.517,
-          "country": "Canada",
-          "precision": "confirmed"
-        },
-        {
-          "name": "Qaanaaq Terminal",
-          "loc": "Greenland",
-          "lat": 77.484,
-          "lon": -69.3632,
-          "country": "Greenland",
           "precision": "confirmed"
         }
       ]
@@ -1019,44 +1015,6 @@ window.CONTINUANCE_DATA = {
           "lon": 37.6173,
           "country": "Russia",
           "precision": "approx"
-        }
-      ]
-    },
-    {
-      "name": "Tynáaj Guild Dynamics",
-      "tag": "TYGD",
-      "holdings": [
-        {
-          "name": "Salt Lake City",
-          "loc": "Utah, United States",
-          "lat": 40.7608,
-          "lon": -111.891,
-          "country": "United States of America",
-          "precision": "confirmed"
-        },
-        {
-          "name": "Alpine Rift Staging Facility",
-          "loc": "Yukon Territory, Canada",
-          "lat": 63.5,
-          "lon": -135.5,
-          "country": "Canada",
-          "precision": "approx"
-        },
-        {
-          "name": "Biological Refinery & Processing Facility",
-          "loc": "Rotterdam, Netherlands",
-          "lat": 51.9225,
-          "lon": 4.4792,
-          "country": "Netherlands",
-          "precision": "confirmed"
-        },
-        {
-          "name": "Exotic Metallurgy & Gear Proving Grounds",
-          "loc": "Incheon, South Korea",
-          "lat": 37.4563,
-          "lon": 126.7052,
-          "country": "South Korea",
-          "precision": "confirmed"
         }
       ]
     },
@@ -1252,6 +1210,228 @@ window.CONTINUANCE_DATA = {
           "lat": 2.5,
           "lon": 20.5,
           "country": "Democratic Republic of the Congo",
+          "precision": "approx"
+        },
+        {
+          "name": "The Syro-Malabar Citadel",
+          "loc": "Kochi, Kerala, India",
+          "lat": 10.019,
+          "lon": 76.342,
+          "country": "India",
+          "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "Curtiss-Wright Corporation",
+      "tag": "CWCO",
+      "holdings": [
+        {
+          "name": "Fairfield",
+          "loc": "Fairfield, New Jersey, United States",
+          "lat": 40.8837,
+          "lon": -74.2921,
+          "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Fairfield Research and Fabrication Campus",
+          "loc": "Fairfield, New Jersey, United States",
+          "lat": 40.8809,
+          "lon": -74.2865,
+          "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Cedar Hollow Conversion Plant",
+          "loc": "Cedar Hollow, Malvern, Pennsylvania, United States",
+          "lat": 40.0483,
+          "lon": -75.5057,
+          "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Fort Bend Flight Test Facility",
+          "loc": "Fort Bend County, Texas, United States",
+          "lat": 29.6197,
+          "lon": -95.6349,
+          "country": "United States of America",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "Atlas Group Ltd.",
+      "tag": "ATLG",
+      "holdings": [
+        {
+          "name": "Atlas Tower",
+          "loc": "Tunis, Tunisia",
+          "lat": 36.8065,
+          "lon": 10.1815,
+          "country": "Tunisia",
+          "precision": "approx"
+        },
+        {
+          "name": "Atlas Prime",
+          "loc": "Somewhere Atlas Mountains",
+          "lat": 31.0,
+          "lon": -7.9,
+          "country": "Morocco",
+          "precision": "classified"
+        },
+        {
+          "name": "Atlas Regional HQ Americas",
+          "loc": "Kingston, Jamaica",
+          "lat": 17.9712,
+          "lon": -76.7936,
+          "country": "Jamaica",
+          "precision": "approx"
+        },
+        {
+          "name": "Atlas Regional HQ Asia-Pacific",
+          "loc": "Singapore",
+          "lat": 1.3521,
+          "lon": 103.8198,
+          "country": "Singapore",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "Order of the Morningstar, Eligos, Gaap and Asmodeus",
+      "tag": "OMEGA",
+      "holdings": [
+        {
+          "name": "Sector 1",
+          "loc": "Bucuresti, Romania",
+          "lat": 44.4268,
+          "lon": 26.1025,
+          "country": "Romania",
+          "precision": "approx"
+        },
+        {
+          "name": "Romanian Medical Research Facility",
+          "loc": "Brasov/Bran, Romania",
+          "lat": 45.6427,
+          "lon": 25.5978,
+          "country": "Romania",
+          "precision": "approx"
+        },
+        {
+          "name": "Berlin Humanitarian Aid Center",
+          "loc": "Berlin, Germany",
+          "lat": 52.52,
+          "lon": 13.405,
+          "country": "Germany",
+          "precision": "approx"
+        },
+        {
+          "name": "Environmental Studies Organization",
+          "loc": "Centro/Lazio/Fiumicino, Italy",
+          "lat": 41.7647,
+          "lon": 12.2506,
+          "country": "Italy",
+          "precision": "approx"
+        }
+      ]
+    },
+    {
+      "name": "The Hand That Takes",
+      "tag": "THTT",
+      "holdings": [
+        {
+          "name": "Montgomery Site",
+          "loc": "Montgomery, Alabama, United States",
+          "lat": 32.3792,
+          "lon": -86.3077,
+          "country": "United States of America",
+          "precision": "approx"
+        },
+        {
+          "name": "Xolotl",
+          "loc": "Somewhere Amazon Rainforest",
+          "lat": -3.4653,
+          "lon": -62.2159,
+          "country": "Brazil",
+          "precision": "classified"
+        },
+        {
+          "name": "Charybdis",
+          "loc": "Somewhere Nunavut, Canada, on an Island",
+          "lat": 68.0,
+          "lon": -70.0,
+          "country": "Canada",
+          "precision": "classified"
+        },
+        {
+          "name": "Charon",
+          "loc": "Somewhere Pacific Island",
+          "lat": -17.0,
+          "lon": 178.0,
+          "country": "Fiji",
+          "precision": "classified"
+        },
+        {
+          "name": "Urabá Antioquia Site",
+          "loc": "Somewhere Urabá Antioquia, Colombia",
+          "lat": 8.0,
+          "lon": -76.6,
+          "country": "Colombia",
+          "precision": "classified"
+        },
+        {
+          "name": "Hydra",
+          "loc": "Panama City, Panama",
+          "lat": 8.983333,
+          "lon": -79.51667,
+          "country": "Panama",
+          "precision": "confirmed"
+        },
+        {
+          "name": "Midas",
+          "loc": "Chihuahua City, Chihuahua, Mexico",
+          "lat": 28.6329,
+          "lon": -106.0691,
+          "country": "Mexico",
+          "precision": "confirmed"
+        }
+      ]
+    },
+    {
+      "name": "European Commission for Thaumaturgy",
+      "tag": "ECT",
+      "holdings": [
+        {
+          "name": "Zurich Office",
+          "loc": "Zurich, Switzerland",
+          "lat": 47.3769,
+          "lon": 8.5417,
+          "country": "Switzerland",
+          "precision": "approx"
+        },
+        {
+          "name": "Forsøl Station",
+          "loc": "Forsøl, Norway",
+          "lat": 70.6725,
+          "lon": 23.7196,
+          "country": "Norway",
+          "precision": "approx"
+        },
+        {
+          "name": "Verstanclahorn Mountain Facility",
+          "loc": "Verstanclahorn Mountain, Switzerland",
+          "lat": 46.8,
+          "lon": 8.5,
+          "country": "Switzerland",
+          "precision": "classified"
+        },
+        {
+          "name": "Nuremburg Office",
+          "loc": "Nuremburg, Germany",
+          "lat": 49.4521,
+          "lon": 11.0767,
+          "country": "Germany",
           "precision": "approx"
         }
       ]
